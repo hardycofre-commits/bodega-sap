@@ -21,7 +21,7 @@
   <section class="panel">
     <div class="statusbar">
       <div class="pill" id="sapInfo">Buscando archivo SAP...</div>
-      <div class="pill" id="saveInfo">Guardado local activo</div>
+      <div class="pill" id="saveInfo">🟡 Conectando con Google Sheets...</div>
     </div>
   </section>
 
@@ -82,12 +82,88 @@ const OWNER='hardycofre-commits';
 const REPO='bodega-sap';
 const DATOS_PATH='datos';
 const STORAGE_KEY='bodegaSapInventario_v1';
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbxlntU4x4bOg4CQWIL80T0-gmrIKulE65hvqs9D0npSfGPmGCfVYcAMUyv8hKNsfOPMTg/exec';
 let materiales=[], current=null, filtro='rebajar';
 let store=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
 function norm(v){return String(v??'').trim()}
 function num(v){if(v===undefined||v===null||v==='')return 0;return Number(String(v).replace(/\./g,'').replace(',','.'))||0}
 function pick(row,names){const keys=Object.keys(row);for(const n of names){let k=keys.find(x=>x.toLowerCase().trim()===n.toLowerCase());if(k)return row[k]}for(const n of names){let k=keys.find(x=>x.toLowerCase().includes(n.toLowerCase()));if(k)return row[k]}return ''}
-function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(store));}
+
+function setSyncInfo(txt){const el=document.getElementById('saveInfo'); if(el) el.textContent=txt;}
+function save(changedCode){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(store));
+  if(changedCode) sincronizarRegistro(changedCode);
+}
+function registroParaSheets(code){
+  const r=rec(code);
+  return {
+    codigo_sap:String(code),
+    oculto:r.oculto?'SI':'',
+    stock_real:(r.real===undefined || r.real===null)?'':r.real,
+    fecha_revision:r.fecha||'',
+    fecha_oculto:r.fechaOculto||''
+  };
+}
+async function sincronizarRegistro(code){
+  try{
+    setSyncInfo('🟡 Sincronizando con Google Sheets...');
+    const payload={action:'upsert', ...registroParaSheets(code)};
+    await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(payload)
+    });
+    setSyncInfo('🟢 Sincronizado con Google Sheets');
+  }catch(e){
+    setSyncInfo('🔴 No se pudo sincronizar. Quedó guardado local.');
+  }
+}
+async function sincronizarTodoGoogleSheets(){
+  const codigos=Object.keys(store);
+  if(!codigos.length){setSyncInfo('🟢 Sincronizado con Google Sheets');return;}
+  try{
+    setSyncInfo('🟡 Sincronizando avance con Google Sheets...');
+    const payload={action:'syncAll', datos:codigos.map(registroParaSheets)};
+    await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(payload)
+    });
+    setSyncInfo('🟢 Sincronizado con Google Sheets');
+  }catch(e){
+    setSyncInfo('🔴 No se pudo sincronizar. Quedó guardado local.');
+  }
+}
+async function cargarAvanceGoogleSheets(){
+  try{
+    setSyncInfo('🟡 Leyendo Google Sheets...');
+    const r=await fetch(APPS_SCRIPT_URL+'?action=read&t='+Date.now(),{cache:'no-store'});
+    if(!r.ok)throw new Error('Sin respuesta');
+    const data=await r.json();
+    const rows=Array.isArray(data)?data:(data.datos||data.data||data.rows||[]);
+    const nuevo={...store};
+    rows.forEach(row=>{
+      const code=String(row.codigo_sap||row.codigo||row.Codigo||row.Código||'').trim();
+      if(!code)return;
+      nuevo[code]=nuevo[code]||{};
+      const oculto=String(row.oculto||'').toUpperCase();
+      if(oculto==='SI' || oculto==='TRUE' || oculto==='1')nuevo[code].oculto=true;
+      const real=row.stock_real ?? row.real ?? row.StockReal ?? '';
+      if(real!=='' && real!==null && real!==undefined)nuevo[code].real=Number(String(real).replace(',','.'));
+      if(row.fecha_revision)nuevo[code].fecha=row.fecha_revision;
+      if(row.fecha_oculto)nuevo[code].fechaOculto=row.fecha_oculto;
+    });
+    store=nuevo;
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(store));
+    setSyncInfo('🟢 Sincronizado con Google Sheets');
+    renderAll();
+  }catch(e){
+    setSyncInfo('🟠 Sin conexión a Google Sheets. Usando guardado local.');
+  }
+}
+
 function rec(code){store[code]=store[code]||{};return store[code]}
 function fechaArchivoGithub(f){
   const n=f.name||'';
@@ -134,11 +210,12 @@ function renderResults(){const q=searchInput.value.toLowerCase().trim();let base
   results.innerHTML=`<p class="small"><b>${total}</b> materiales encontrados${total>300?' · mostrando primeros 300 para mantener velocidad':''}</p>`+list.map(m=>`<div class="item" onclick="abrir('${m.codigo}')"><div class="code">${m.codigo} · SAP ${m.sap} ${m.um||''}</div><div class="desc">${m.desc}</div><div class="meta">${estadoTexto(estado(m),m)} · Última revisión: ${rec(m.codigo).fecha||'sin registro'}</div></div>`).join('')||'<p class="small">Sin resultados.</p>';}
 function abrir(codigo){current=materiales.find(m=>m.codigo===codigo);if(!current)return;homePanel.classList.add('hidden');detailPanel.classList.remove('hidden');dCode.textContent=current.codigo;dDesc.textContent=current.desc;dSap.textContent=current.sap+' '+(current.um||'');const r=rec(current.codigo);realInput.value=r.real??'';dFecha.textContent='Última revisión: '+(r.fecha||'sin registro');actualizaEstadoDetalle();realInput.focus();}
 realInput.addEventListener('input',actualizaEstadoDetalle);
+realInput.addEventListener('change',()=>{if(current && realInput.value!=='')guardarRevision(true);});
 function actualizaEstadoDetalle(){if(!current)return;let temp=JSON.parse(JSON.stringify(store));if(realInput.value!=='')temp[current.codigo]={...temp[current.codigo],real:Number(realInput.value)};let old=store;store=temp;const e=estado(current);store=old;dEstado.className='state '+e;dEstado.textContent=estadoTexto(e,current);}
 function volverBuscador(){detailPanel.classList.add('hidden');homePanel.classList.remove('hidden');searchInput.focus();renderAll();}
-function igualSap(){if(current){realInput.value=current.sap;actualizaEstadoDetalle();}}
-function guardarRevision(){if(!current)return;if(realInput.value===''){alert('Ingresa stock real o usa Igual que SAP.');return;}store[current.codigo]={...rec(current.codigo),real:Number(realInput.value),fecha:new Date().toLocaleDateString('es-CL')};save();searchInput.value='';volverBuscador();}
-function ocultarMaterial(){if(!current)return;store[current.codigo]={...rec(current.codigo),oculto:true,fechaOculto:new Date().toLocaleDateString('es-CL')};save();searchInput.value='';volverBuscador();}
+function igualSap(){if(current){realInput.value=current.sap;actualizaEstadoDetalle();guardarRevision(true);}}
+function guardarRevision(silencioso=false){if(!current)return;if(realInput.value===''){if(!silencioso)alert('Ingresa stock real o usa Igual que SAP.');return;}store[current.codigo]={...rec(current.codigo),real:Number(realInput.value),fecha:new Date().toLocaleDateString('es-CL')};save(current.codigo);searchInput.value='';if(!silencioso)volverBuscador();else {dFecha.textContent='Última revisión: '+rec(current.codigo).fecha;renderAll();}}
+function ocultarMaterial(){if(!current)return;store[current.codigo]={...rec(current.codigo),oculto:true,fechaOculto:new Date().toLocaleDateString('es-CL')};save(current.codigo);searchInput.value='';volverBuscador();}
 function continuarPendiente(){let m=materiales.find(x=>!rec(x.codigo).oculto&&x.sap>0&&estado(x)==='pendiente');if(m)abrir(m.codigo);else alert('No hay pendientes con stock SAP mayor a cero.');}
 function setFiltro(f,el){filtro=f;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderList();}
 function renderList(){let list=materiales.filter(m=>estado(m)===filtro);if(filtro==='pendiente')list=list.filter(m=>m.sap>0&&!rec(m.codigo).oculto);listBody.innerHTML=list.map(m=>{const r=rec(m.codigo);const real=r.real??'';const dif=real===''?'':(m.sap-Number(real));return`<tr onclick="abrir('${m.codigo}')"><td>${m.codigo}</td><td>${m.desc}</td><td class="num">${m.sap}</td><td class="num">${real}</td><td class="num">${dif}</td><td>${r.fecha||r.fechaOculto||''}</td></tr>`}).join('')||'<tr><td colspan="6" class="small">Sin materiales en este listado.</td></tr>';}
@@ -174,6 +251,7 @@ document.getElementById('backupInput').addEventListener('change',async e=>{
     if(!ok)return;
     store=datos;
     save();
+    sincronizarTodoGoogleSheets();
     renderAll();
     alert('Respaldo importado correctamente.');
   }catch(err){
@@ -183,7 +261,10 @@ document.getElementById('backupInput').addEventListener('change',async e=>{
   }
 });
 
-cargarDesdeGithub();renderAll();
+cargarAvanceGoogleSheets();
+cargarDesdeGithub();
+renderAll();
+setTimeout(sincronizarTodoGoogleSheets,3000);
 </script>
 </body>
 </html>
