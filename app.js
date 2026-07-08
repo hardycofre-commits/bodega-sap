@@ -2,7 +2,7 @@ const OWNER = 'hardycofre-commits';
 const REPO = 'bodega-sap';
 const DATOS_PATH = 'datos';
 const SHEETS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxlntU4x4bOg4CQWIL80T0-gmrIKulE65hvqs9D0npSfGPmGCfVYcAMUyv8hKNsfOPMTg/exec';
-const STORAGE_KEY = 'bodegaSapInventario_v4_2';
+const STORAGE_KEY = 'bodegaSapInventario_v4_3';
 
 let materiales = [];
 let sheetStore = {};
@@ -249,16 +249,8 @@ function continuarPendiente(){
   const m = materiales.find(x => !rec(x.codigo).oculto && x.sap > 0 && estado(x) === 'pendiente');
   if(m) abrir(m.codigo); else alert('No hay pendientes con stock SAP mayor a cero.');
 }
-function renderList(){
-  let list = materiales.filter(m => estado(m) === filtroActual);
-  if(filtroActual === 'pendiente') list = list.filter(m => m.sap > 0 && !rec(m.codigo).oculto);
-  list = list.slice(0,300);
-  $('listBody').innerHTML = list.map(m => {
-    const r = rec(m.codigo); const real = r.real ?? ''; const dif = real === '' ? '' : (m.sap - Number(real));
-    return `<tr data-code="${m.codigo}"><td>${m.codigo}</td><td>${m.desc}</td><td class="num">${m.sap}</td><td class="num">${real}</td><td class="num">${dif}</td><td>${r.fecha || r.fechaOculto || ''}</td></tr>`;
-  }).join('') || '<tr><td colspan="6" class="small">Sin materiales en este listado.</td></tr>';
-}
-function renderAll(){ renderKpis(); renderResults(); renderList(); }
+
+function renderAll(){ renderKpis(); renderResults(); }
 
 $('searchInput').addEventListener('input', () => {
   const q = $('searchInput').value.trim();
@@ -267,7 +259,6 @@ $('searchInput').addEventListener('input', () => {
   if(exact && q.length >= 5) abrir(exact.codigo);
 });
 $('results').addEventListener('click', e => { const item = e.target.closest('.item'); if(item) abrir(item.dataset.code); });
-$('listBody').addEventListener('click', e => { const tr = e.target.closest('tr[data-code]'); if(tr) abrir(tr.dataset.code); });
 $('continueBtn').addEventListener('click', continuarPendiente);
 $('backBtn').addEventListener('click', volverBuscador);
 $('sameSapBtn').addEventListener('click', igualSap);
