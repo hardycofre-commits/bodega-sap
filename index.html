@@ -1,85 +1,271 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bodega SAP v5.5</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bodega SAP</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root{--bg:#f4f7fb;--card:#fff;--txt:#182230;--mut:#667085;--line:#d0d5dd;--blue:#175cd3;--green:#079455;--red:#d92d20;--yellow:#b54708;--cyan:#026aa2;--gray:#667085;--shadow:0 8px 24px rgba(16,24,40,.08)}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font-family:Arial,Helvetica,sans-serif}header{background:linear-gradient(135deg,#0b4ea2,#1570ef);color:#fff;padding:18px 16px 22px}header h1{margin:0;font-size:24px}header p{margin:6px 0 0;opacity:.9}.wrap{max-width:1100px;margin:0 auto;padding:14px}.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}.statusbar{display:flex;gap:8px;flex-wrap:wrap}.pill{border:1px solid var(--line);border-radius:999px;padding:8px 11px;background:#fff;font-size:13px}.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.kpi{border:1px solid var(--line);border-radius:14px;background:#fff;padding:10px}.kpi b{font-size:22px;display:block}.kpi span{font-size:12px;color:var(--mut)}.searchbox{display:flex;gap:8px}.searchbox input{flex:1;font-size:18px;padding:14px;border:1px solid var(--line);border-radius:14px}.btn{border:0;border-radius:12px;padding:13px 14px;font-weight:700;cursor:pointer}.btn-blue{background:var(--blue);color:#fff}.btn-green{background:var(--green);color:#fff}.btn-red{background:var(--red);color:#fff}.btn-gray{background:#eef2f6;color:#344054}.btn-full{width:100%;margin-top:8px}.results{max-height:360px;overflow:auto}.item{padding:12px;border-bottom:1px solid #eef2f6;cursor:pointer}.item:hover{background:#f9fafb}.item .code{font-weight:700}.item .desc{font-size:14px;color:#344054;margin-top:3px}.item .meta{font-size:12px;color:var(--mut);margin-top:4px}.hidden{display:none!important}.detail-title{font-size:14px;color:var(--mut)}.detail-value{font-size:22px;font-weight:800;margin:4px 0 10px}.stock-input{width:100%;font-size:28px;text-align:center;padding:12px;border:1px solid var(--line);border-radius:14px}.state{padding:10px;border-radius:12px;font-weight:800;text-align:center;margin:10px 0}.ok{background:#dcfae6;color:#067647}.rebajar{background:#fee4e2;color:#b42318}.revisar{background:#fef0c7;color:#93370d}.cero{background:#e0f2fe;color:#026aa2}.pendiente{background:#f2f4f7;color:#475467}.tabs{display:flex;gap:8px;overflow:auto;padding-bottom:4px}.tab{white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 12px;cursor:pointer}.tab.active{background:#175cd3;color:#fff;border-color:#175cd3}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;background:#fff}th,td{border-bottom:1px solid #eef2f6;text-align:left;padding:10px;font-size:14px}th{color:#475467;background:#f9fafb}td.num{text-align:right}.small{font-size:12px;color:var(--mut)}.file{border:1px dashed var(--line);padding:12px;border-radius:14px;background:#fcfcfd}input[type=file]{width:100%}@media(max-width:760px){.grid{grid-template-columns:repeat(2,1fr)}header h1{font-size:21px}.wrap{padding:10px}.panel{border-radius:13px}.searchbox{display:block}.searchbox .btn{width:100%;margin-top:8px}.detail-value{font-size:18px}th,td{font-size:12px;padding:8px}.kpi b{font-size:20px}}
+  </style>
 </head>
 <body>
-  <header class="hero">
-    <div class="container hero-inner">
-      <div class="brand-card"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQYAAABGCAYAAAAuGjrkAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAFiUAABYlAUlSJPAAACDESURBVHhe7Z13mBzVlfbfCl0dp6cn56TRKCckJIEIAhNkMF6wWYwxWmxjY5tl12GdjTPrAOzDZ4wtWNKaaGzAgATCICQRR0I5zigyo8mxezqHCvf7o7pb3dVdVd0zIzGC+j1PPRrdW91d4dZ7zz3n3FsUIYTAwMDAIAVaWWBgYGBgCIOBgUEGhjAYGBhkYAiDgYFBBoYwGBgYZGAIg4GBQQaGMBgYGGRgCIOBgUEGhjAYGBhkYAiDgYFBBoYwGBgYZECpzZVQKc6AoihlURqEEOh9FUVpf08ux6L2+dP1+5jgMehBURRUvj5J4nf09kugdrwTJZ/z1bv2kpTbF+l9Ty5M5nGrkfobuXx8PL8xGWQVBkIIegc84AVRWZUGy9AoKXLAZjUrq4D49/gCYfQOuJVVAACapkEIgdViRnWFC5yJTasnhCAQjMDtDaaVKzFzLMqKnWCYdAMoFhPQN+RBKBxNK09FkgjsNgsaa0uz3oRQOIoRdwCiJCmr0mAZGpVlLphMjLIKPf1u+IPhnAUmASEnRYnjTGiuL884xwSEEAwMe+ELhNManCwoFKj43wxDg47/yzIMWJYGw9BgaBosy8DEMqBp+TPjpXfAA18gpHm+hMj3v7rChcICm7IahBCM+ULo6XfHj0fen6Ko+MMlb4ifV2lxAcqKncqvyZlIlEdPvxuRaAw0TQMgoCgq/jcgSVLyoSYEcDosqK8pVX6NJqIoYXQsAI83GL++J49fvkeJ86TA0Cfvi8nEgGUZ0BQFlmXAMnLdRO6RHlmFQRBEzFv1IxztGNC8uaXFBfjrH/8Dl5w3V1kFAOAFEc+s24Kb/usBZVUaLqcNz635Fj6xYk7aycZ4AU+9+B6++sOH0/ZXsmhuAzY+9RO4nOkNbGB4DJ/5+h+wdfextHIlDpsFRzb/D6rKXcoqPLd+G2758cPw+kLKqiQURaG81Ik963+LitJCZTVWXv/feG/nEYiitrhowTI0Dm64Ey2NlVkbRDTGY/V37sdz67cpq5C6d6Kx07QsDiaWQVGhHTUVRZg9vRqf//S5WLaoGTYLN+7Gt/yan2PngU7d8+VMLG68ZgUeufOWjN8RBBE3fnsNnnt1m67VwDA0vvvVK3Hnjz6vrMqZp19qxW0//wvGNO5zAoqiUFZcgK7We2HmTMpqVbz+EP7zF4/jiRfeVVZl3CMqLt6p96i2shhzWmpw3ZXLsPys6bBZOLBsZkc0GWTvfhImT1zTVLeUHm0ijPlCeHb9+wgEI2nlNEWhqNAOiRDtTaXhFBXasXheY0ajUxKN8dh/qDvruew80IFoTMg895SNpmnMmV6TVRQmCwJAFDOPL5Vsxw/FsUqEQBBFxHgB4UgMvkAYJ3pH0LrrKB75+1tY9cU7cdH1/42/vbwVoXBM9TvVIISgq29U9Z6kEuMFtB/rQyTKK6sgEYLWnUdzMu1FUcKoxw9Bx8JVQ5IkvPj6DgSC6pZlKglrZm97V97XJ00BUlDeI1GSMu7RezuP4KFnNuOKL9+NldffgSdffA+RKJ//MeSAqjCcbl7euBvHTgymldG0LAzjxcyZsGReE2wWTlmVBiFA27HerI1w5/4OxHhBWZyGxWzCTddeoCyedHT0bVKQJILdbSfwpe89iG/c/ij6BseUu2jiC4QRCEZzbqzusUBGL00IwcDQGHoHPTl/z5gvhGhM+z6p4fWHcaRjAIKYu7BIEsGWXbkJ12QjihL2tHXhG7f/H27+/oMYHQsod5kwU0YYBoa9eOPdA2mqT9M0CuyWCT0QZy9o0hUXApLVYojGBHT3u3VNYpuVw4rFLcriMxpBFPH02lZ885ePY2jEp6xWZWjEB9nWzI0xXwhDo+nfL0kE2/Z+kHE/tBjzhxCNZVoeudA36Mk4Bj0kIsUtmtyPcbKJxng8u34bbvzWGvgCYWX1hJgywiBKEp5dvw0Dw960ctkhlu6UzIeaiiIsmF2nLE5DkiTsP5wpDF5/KKuZmwpFUSgssKG2qlhZdcYjSQSvbN6D+598AzyfW286OOLNaRiRIBSOoXXnkbQyUZKwfd8HaWV6jHnHbzGs37wHPn9+DxYhQOvOo5A+RGFAXMDf3XEEv1+zLqP9ToQpIwwA0H6sD5u3tKWVJTzn46WwwI4Vi2eAptXNDkLk3xYUloHPH0Y4EksrU2LmWFxx0UJYzLk7oc4kojEez7y8FZ09w8qqrAyN+vJqoNEYn3HPJYlg36GutDI9xnzBcVkMoijhpQ27EI5q32clhBD0DXlwrHMwr/M9FYQjMTz54nvoHfAoq8bN+J+4U0AwHMFLG3amjTkTXtnxwrI0Fs1pQIHdoqxKIxSJ4mhHf1pvNzji1W1sdpsZX7j6XF0Hpx5ytEBji9dPFDNnwr9esQzXXL4EjbVlyXCcFj39bmxsPagszsrgiDevcbcgSmhTOCAlSR7a5UMwHIU3z14fAEY8fvQOuvOychIQAryz/ZDuUDNfrBYO110p36OGmlKwjHb7J4TA6w/pRt/yQb9VnEbkC304rVGwzMSGEgAwp6UGpUUFyuI0CEGGl3n7vg90czlKXA5MqytXFudNXVUxNj19Ow6+fmfWbf9rv0dTbfmEBYgzMbjnZzfiiXtuxY61d+CGT5+jK7yhSBS7cgg/Ip7DIOnkfKRC4rkqnniuiiQR9A260T+cn9OTF0T0DebfY3b1jqgKCkXJ+QRa1/xUDCecDivu+9UX8cQ9t2L72jtw5cX6FmkkymPdxl3K4nEzpYQBADzeIJ5ZtyXZUzMMNaGhBACUFDlw/tKZyuIM9rZ3pd3kbXuPa46tGZpGQ02prnMzF8ycCY21pZg5rSrrNqOpMmvyVL5QFAWbhYPDbkFJkQO//f7ndBudJBEMu/26/hYA6O5352UxAEAgFMGoR/asi5KELbuO5d2D8/z4hOHpta2qw0XOxGDB7DpwKtedEILt+z7I+1j1oCjAZjXDYbegtMiBP/7ypqw5NqkIoog9bSeUxeNmYk/cKYAXRGza0pZ0QjL0xIYSAGC3mnHxuXPAqmQNIn6TDx3vT/Z2kkSwc3+HZgjLZuXwr1csm7Qkk0Rii9p2KqitKsa0+nLdYUooHNW8Fgm6+kbyikoAQDQq4O1th4D4mP+9HenOyFyI8QL6h/KzMiJRHi9t2KUajraYOaxcNgt2W/bMXgA42jGAEbf/lPkZqHgyVbHLoaxKQ5IIRj2BSTsO9SflQ6S7fxR/XdsKSSJyCugEHzyGoTGjqRIup3bPfuiDvqT6e/0h+IMRzd6gqNCOT6yYoyweH5QcHRHF7Ntk3XAlNE3DqpPngXhOSS7i1NOf/3g9GuPx+jv7gbgwtB/vU+6ii2wx5CcMPf1u+APq99hqMWHlObPhsKn7p3hBxFvvt0NU+Y7JIJEarQUVz5TM5R7lgvavfUiEwlG8smkPPN7ghJ2PCRpry3RDil29o8k5DaOegOYwgqIo1FeXTlq248DQGL78/Qdx9S33ZGzX3nov9uXpjMuVGC+gu29U1/wvLLDBzGn7enheRP/QWN4iJogS9rSdSFolRzr6lbvoIhGCkTyzH/e2n9B0LpcVO9FYW5Z1Lkcqb25tz+t38yUUjqkOdxIwNI2mujJl8biZEsJAKWaqEQK0H+9D684jcefjxIWhsMCGT65coCxOI8YL2H+oB5IUb2QapjNnYnD2/CbYNXqTfPAHI3hzazte2bwnY3v1zb2Taiamsqn1INzeoOZ3mzkWs5qrMya5KRl2+zSdtfJkt4KMYQshBOFIDAPDXnT3uTHs9qfVA0Cxy6E6gQzx7/AFQohpiLmSZ9dv08x9qCgtRGlRAebOqFVWpbG3veuUCQMhBLsPdur6TziOwaoLtdt3Pqhf6dPI5RfMh0MxjvP6Qnjomc2IRGO6ip0LFrMJK5fP0nW07TzQAVGScKxzEIKg7l0vsFvx6UvPymjkUx1RkjAw7EVnzzBeeG0Hvvebp1XH2AmKXQ6sunC+pplKCEGfTgqzxWzCsoXNWe9BjBfQ1Tcqm+VZoh+LZtfrCpM/EEEkx3yEMV8Q72w/rCpkNE2huqIILqcNC2ZpJ8gdOt6HcCT/eSVqiKKcEt7ZM4x1b+zGN25/FF6/9uQuh82Cay5foiweN1NCGC4+dw7mzqhNS32Wzcsu9Ay4UVqsHWrMBZqm0FBTphtB2NvWBVGUsOuAtuOxrroYc1q0e5KpSDTK44Zv/hmrbroTN//gQbQd68v6ICbgTCxWXbhAt9cEKF3nn4llsWReI+xZpunHeAHvbj+Mt96XnZBKLj1/nu5QJhCKaloAqRztGEQwpD6nw8yZMKu5ClYLh/kz6zRF0R+M4P09x3Wn5ufKmC+Ia2+9F5/84l246bsP4IPu4Yzku1TMHIvli5rRkOc0cC2mhDCYOROuWLkANkt6gxnx+PHAkxtRWGBNKx8vFaWFmNlUpSxO43jXIERRws4Dnao+BoahMbu5RldkpiKCKKd/H+kYwJhPe80ElmUwp6UG3775k7oJYoQQ9A2NafoqTCYGC2bXZ3UCx2ICXtm0G+3HepVVoCgKK5fPRlGhXecBDecUUgWArbuPaVpKVosJ82bUgmFo1FYV61orr729X7W95AsviNh/uBuHP+iH1x/SFG4Ty2B6QwX+389Wq66LMh6mhDBEYwI+d9U5qKsuSSuPRHn88+19aWUTwWblcO0VSzUbV0f3MILhKI509KsmrljNHC5YNlO3BzuTsVk5nD2/CX/+9Zcwp6VG85ol6Bv0aIYqE4vZTKvPTAgTJYId+ztxtHNAWQWHzYxZzdWory7RHLoFQ1H4AtomN+KhvX+8tl3zQXbYLJjVXA3Er4Xdph252XWwQ3VYciqgKAo2K4ez5jbg0bu+hqZJSLJLZUoIQygcRUVpIT5x7pw0RyMhBCNuP97edjht//Fi5lhcsGwWrJbMMW6CEY8f+9q7NOe5F7vsuOic2crijww1FUX4yucuwnNrvoXli5pzcv6S+KpfWnCcCeWlTkxvrMgQGhJfJyLbUKChphQsS6O2skQzbCeIErr7sq8WlsrQqA972k5oDhVrKotRGF/4x2Yxo8CubbUe6xxENEdrZTKoLnfh61+4BC/873ewdOE0TcEcD+pX+TQSjsTAmVh87qrlGYkcvCDiRO9IWtl4oSgKJS6H5hJgkkTw4us7szbQBPNm1KKyTDsTLV9sVjNmT6/G4nmNGdtZcxtQ4NA25XOFpqmMla6ULJxdj5/+5zWoqSzSjAQo6R10q4opIC+H5rBZ0FxfrplspqSprhwMTaOmskjzAeB5Ad39o8riDHYf7NTt3euqipO+EKuF0x3ODrt9ONLRr2n254rFbILNymWIZyrLFjbj9tuuRnVFkeZ+4yX3u3MKCYVjICBYOLsB5y3Rngk5UZwFVixd0KQsTuOxf7yjGt82sQwWz2vSHXPnS3WFC2sf+i5an/9FxvbW336KJfOaJqUBcCYW13/qHGVxGu/tPIr9h7rzCsHJUQltH0OR0w4Ty2BafblmNqGSOS3VYFkGtZXFmm2DF0R09+kLw5tb2zWHEVR8DclwNIZRTwCBUATNWYY/qRACvLxpj6bfIldqK4ux+urzNP0ab28/hHe2H1JNzpooU0IYwtEYJImgsMCKf7l0cYYTcjKxWjj822cu0GxgwVBU9YI7HVacd3ZLXj1pLlCgwHEszJwp66Z1vPlgYhn8+02XajY6rz+EX//xH8mJTblA4j4GLYoK7WAYGs0NFXkJw9IF08AwlGzBaA0lBBHd/dpDCVGU8MqmPZrDCIoCnn91Oz5xw29x8Q2/wZVfvhutu/RnLr71frumpZkPX7j6PM0hr3ssgD8//oZuGHO8qF/l00goLIeNKIrCJefNRUtThXKXSUPu8RvhdGibhmo01JZiwax6ZfEZA03TaKorx8rlszQtkB37O7Cx9WDOVkMoHIV7TDsJq6jQDpZlUFZcgLqqdEezGjRNYcn8JjC07LjUmiYuSgQDw2Oqog4AH3QN4YPuIc19JIlgcMSL/Ye7sf9wN9qO9mJwJH0BoWx09Y1OisUAAAtm12HmtCrVDogQYPu+43ju1W2TMnxRkv1XTzPhCJ+8UeWlTlx/1Tm6c9AngtXCob46/5gvRVE4Z9H0UxKmlIiEaIxHOCKnvyo3LWdovrAMjS9ee6HmknmhcAx3P/hKxopa2SBEnnegd3RFhXYwtOxNn9NSo6zOSkVpIcqKnUkvvNqDgvhwJhSJaSY5TXS1bi0GhrwYcfs1RSdXTCYGP/j6VZrrlXr9YfzvU5vysuxyRf0qn0ZC4WhyViNnYnHZ+fNRVjLxpCY1rBZuXJOfLGYTli6cltOko3wZcQfwvd88jVt+9HDW7Ws/fkR13YB8oWkK11y+BBWlhZpWw8EjvXju1W2ayTWIL43Xo/LukFSKXQ6wLAObxYzZzdWawpQgtde0WTnQOh8KhWURVWPjewcnLRFJiShJeHmT+mzNfDn/7Jmw28ya9+jQ8T488NTGSRGjVKaEMIQjfJrTanpjBT518SLNCzIRzByLGz59rtpK3qoUF9qxZL6243K8eP0hrH1jF556qTXr9vTa1uSQa6JQFAWrhcPqa87T9F1EYzweemYzjmXJLUiFEIIenbE9ABQV2pIvUmmsK8tJYGdOq0oeo9XMaR4v4hEuNWEQRQkb3j0w6Q9RKuve2K074SlXykuduO7K5Zr5MsFwFI89/05OQ518mBLCEIpE08xQp8OK6z61XNOMmggMQ2NaQzmqK4qUVZosnteImjw/M1WhKOCmz56vO2Q70jGAvzz3tmZ4jwC6FgNNy4vmJnr/2spizenMCRbMqkuKgc1q1hxKQMNiIEReX2PUc+rWTgCAzp4RBEO5vZ8iF25dfYmuP6y7fxR33PeCsnhCaF/l00Q4HMtYDmzBrDrM15m8MhE4kzxjMFcoCrjonDmTMqFrKkBRFObOqMWKJdoRFkEQ8beX38e+dvXFWeVQpXZEgmWYtMlT1RWunHw1Z81tBE2lDCV0LIZINIZAKP3FRYg7FDe2HtT1gyDug7FZODhsZhTYLSiwy/kXueReDI16JzVS0NxQEV+bU/28ozEBL7y2Y1zT1dXQP9PTAC+IGQ6hkqIC/PvqSzXDUxPBzJl0p2Gn4nLasXB2veZDdKZBURRu+fzFupmN3f2j+NNjG7L2xIgLw8CwV7MnNpmYtKFDgd2q64A0sQzmzqhNPhQWswmcidUcYvKCiBM9mQlxEiHY1NqW0QEpqaksQuvzv8TwrvsxtPN+DO5Yg8Eda9C/7U9Y/5cfKHfPIMaLeHf7YdU8mHzhTCy+ffMq3czLUU8AP7nr75M2TJoSrVySSIaDy8QyWH5Wc97mfq6YWAZXX74kp14AAKrKXZg5TXsC1pnIFRctRGGBTfNhE0UJr761F9v3Zn/XAyHy6tBacCY2TRisFg6L5jSk7ZMKRVFoaapM+wxFUaipKNZ0QAqChE6FMBBCEApH0brziGYCFgDMbq5BY20pbFYzrBYuuTnsFsybUas53k+wbuNuhCOTIwwAcMl5c1FZpr0gkCBK2LSlDe/v0c+3yIXcnopTjEQk8Fk8uTUVxbjuymXK4kmBpimUlzjR0lSprMrKZefP000lPhMpLLDi3z6jnWUHACNuP363Zi38iveLIsVi0MLEMrCaTz7kZo7F3JYaVWGmKGBuS02Gg7i+pkTTahNEEZ296e/AkCSCt98/hFAOTsH5M+vgUMlqNZkYzXT6BAeO9EzqcKLEVYALlmpP2iOEwB+I4Cd3/31SrJWsb7uWJILr/+M+dPdrL/nlsJtx94+/gMXzGpVVQLynee3tffjVvdqOkZIiBx763VdQU5m+9JokEXT2DGP1d9YgGhVAUfJrwhG/EIk3hLY0VeKRO2+BzZqfszIa43HHfS/i1c174z2mnGSVgMRf2suyNO756Wqcu7hFc6ynxtd/8gj2HeqekJlH0xTWPfxd1bUpBEHE7f/zLN7c2q6sSsNq4bDhiR+lrTjddrQXX/vxIwhHYsnzP3mdk7vB5bThnp/dmJHgFeMFXLb696pDDcQF6MHffQWNtSeXH9vb3oXbfvYXRKJ8WuiSEPn3b7vpMtz02fQs1T899jqeWbdV1RnK0BQuXD4Lv//hyTdfi6KENU9swGPPZ3nLdMrvsiyDX3zrs1h14YKsodRgKIqbf/Agjp8YUlalYbeZ8chdt2B6Q3qiXjgSw+/uX4fX3tKeMVxTWYSn770tzSfT0T2Er/7wYYz5Qpr3yG4z48+//hLmzdRbP0ObrMJACEEgFM0Y9ythGBpmjlXtbQiRhwh6XlqWoWExm7Iu+ioIIoJh9RRlxJXcZjHn/dASQhCJ8poNGnET1mblVM9Tj0AwkjFUGg9Oh1X1HAkhCEd43Rg6TVMZXu5crjFS7rfy1e+EEPgCEU0fA8vG73FKFIQXxHgOS/bP2azmjF4yHIkhxguqHRZFyQvCpHYSudznRKdjtajfZ0mShyRqopSApinYrOYM340kEURjvG7aNMPQsFvT2zMviIhEed1MVJqWQ9Fq55ArWYXBwMDg4436YM3AwOBjiyEMBgYGGRjCYGBgkIHhYzAwMEgixt96ZgiDgS6SRBDjBXmLCRAlCZJE4lEnETwvgRcEiKIEicjlFEWBpijQNA2alt8azbI0WIZJetspikrWMQwNlqFhMrFgGfn/WklXBpNLIjJ16Fgfli5sNoTBQA7nRWNCMhTo84fRN+jBSHxZM38gjIFhL070jmBwxAuvP4xINAZeECEIIkSJyKIgSSDx76MoChTkEGBCHOj4+xWZ+LsYWZaGmTPBbjWjwGFBiasA5SVOFLvscDqsMMdToO1WM1yFNpS4HChwWGHmWPllxyYGZs4EE8toJj0ZqBOJ8hj1+LGnrQttR3twzeVno6Wp0hCGjxuiKCEUiSISFTDq8aOn3w2PN4j2433Ytuc4egc9GPMF4Q9EEIrEwPMiRElUzRs4FSRyCijIQmJiGVgsJljNHGxWDjarGYUFNtRUFGFmcxUaakrhctpgtXBwOWUBcdgtMLEMTCYWZo6FiWUMCyROJMojEIzgeNcQtu89jvVv7sWSeY24dfWlqCp3ydffEIaPLoSQeBJRDP6gbAX0DXrw2tv7setAJ/qHxuDxBhGJyStonalNIWGNcBwLq5mDw26Gy2lHcaEdzQ0VWDK/CdPqymGzynMeXE4b7DYzTKwsGBwnD18+qsIR42Vr0OsPoW9wDLsOdOKva1vR3e9GVbkLP//mZ3Dhsllp63AawvARQxQlRKI8/MEIRj1+HDjSg6debEXbsV4MjXhzynD8qJHwZbAMHbc2rCgqtKOitBCzp1djxeIZaKwthdXCxZduN8NiNmX4Paa6cIiihBgvgBdERKM8fIEwAqEodh/oxAuv78DBIz0YHPFBIhLKip346vUX4ZYbLkZZsTMjo9YQho8AgiAhEo0hGI6ip9+Nh595E5u3tqFv0POxFIJ8oSjZAcpxDOzxYUppcQGqylyY01KN5Yumo6WpUl4oJu7bSDhIZWsl7jeJ+04oxdvbJwohBJJEIEoSRFHeJCL7dXhBBM+L4AUBA8NebN7Shi27jqKzZwQDw2Pw+sPgBRGEEJg5Fk6HFVdctBC/+s61qKkszkjbTmAIwxmKKEpJh2H7sV786fEN2Lr7GAaGvZMyu04LtUb/UW1KiQgLx7GwWTg4HVYUuexwFdhQXORARUkhGmpK0NJUifrqUhQV2mG1cEmBSPhMQE7+X173SiZx2QghICDJyXuIR4R8gTCGRr041jmI4yeG0N3vxtCoF6OeANxjQYz5gwiGoojxQkYnQFEUzBwLh92Cqy5ehB/d+i9oqi/TnUthCMMZRowXEIny6OodwR8e/Sc2bWlDT79bd2IPUkxqOYwohxITjTcRWkxtzKmzTWkqHnZk5H3l7zoZCSBEDmkK8Tg4IfIisZIk93YSkZINPtH7ncl+DTVOWhAUWIaBycSAM8m+DJZNtTTopDiIogRRIhAEMWkBxHgBgiBCSLEQ8rlWLMskLYRv3HgJbrx6BRpry3KO3hjCcAYgSbITMRiK4MkX3sPTa1uxN/5+TSWJhik/+CeFgGEYOGxmNNSWYta0atTXlKDEVQCX0waX04ZCpw1OhxX2+AIlZo5N5h0kTOZkzwc5YpAQjUQTIvF4OM/LMwGD4SjGfEG5Z/MG4R4LYMTtR8+AG8c6B9HRPQyPLwhBkKMeEjkpFglhIfHzN5qpNgnRN7GyEK1Y0oKbr1uJS+PriKhZeWoYwjCFkQVBwImeEdz32Ot4dv02DI36kg9JqghQlNxL1FQUYfG8xuTboZvqylBXVYLS4gLYreasU9s/LBLDoUAwArc3gIFhL/oGPRga9SUF5PiJQXT2jMDjDSZ7zYRoIC5Gclm6Cf5xICEGDE2DMzFYftZ0XPvJpVh14QI01ZXlLQapGMIwBSHxMOPug534w6P/xEsbdiUXM0mY+RaOxZL5TVg8txFzZ9Ri0ZwGNNWVpa3E/FFBFCWEozH4/GEMu/3oHXCjd9CDwWEvRscCGBz2ort/FN39box6/IjGhOQIPmnNpDTzxJ9nWtNPWGxU3FlaX12CS86biwuXzcLK5bMm9QW3hjBMMQRBxI79HbjrgZfx8qbd4AURNE2jpsKFC5bOwtkLmrBy+WzMnFal+0bkjxuSJFsg/mAYHm8IQyNe9Ay40TfowbDbjzFfCGPeEEY8fgwMj2Fo1Ad/MCILyRR+DCiKQmmRAwtn12PezDosXTAN55w1HXVVJWkrcU0mhjBMESSJoO1oD+5+8BU89+o2FBZYsWLxDFywdCZWrZRNQ4aWnVaJXsNAnZOWgvL/8X/jQhLj5VWkfIEwPGNBjI4FMDzqw9CoDx5vEF5/CIFQNPmqwGAoimA4ikAwikAogmAogliKs1AUZb9IrtAUBYvZBLvNjPJSJ8qLnSgrcaK8xInmhgrMn1mLlsYqlJUUJLM3Uy2HU4UhDFOAvkEPHv/HO9jwzgEsnFOPay47G4vmNshzAhgGTNzxZ3BqSBWRhL8CFHXy7+Q+cpnyM3L0QIQgSBBEWSQS0QW5PC4YRPYLsXEHocVsSiZVmTlTylAxNYL04XQEhjB8yPQPefDOtsNYPK8RlWWutNmFBmcWykdJ78lKPOun+6HPBUMYPmQSpmcit8DAYCpgCIOBgUEGhr1qYGCQgSEMBgYGGfx/nejRzIgjfTMAAAAASUVORK5CYII=" alt="Invermar" /></div>
-      <div>
-        <h1>Bodega SAP</h1>
-        <p>Inventario físico vs stock SAP · Piscicultura Lago Verde</p>
-      </div>
-    </div>
-  </header>
-
-  <main class="container app-shell">
-    <section class="panel status-panel">
-      <div class="status-row">
-        <span class="pill" id="sapStatus">🔎 Buscando último Excel en GitHub...</span>
-        <span class="pill" id="sheetStatus">☁️ Conectando con Google Sheets...</span>
-      </div>
-      <p class="hint">El sistema toma automáticamente el último archivo Excel desde la carpeta <b>datos/</b> del repositorio y usa Google Sheets para guardar revisiones y ocultos.</p>
-    </section>
-
-    <section class="kpi-grid">
-      <button class="kpi active" data-filter="todos"><span>📦</span><b id="kTotal">0</b><small>Total SAP</small></button>
-      <button class="kpi" data-filter="pendiente"><span>⏳</span><b id="kPend">0</b><small>Pendientes</small></button>
-      <button class="kpi" data-filter="ok"><span>✅</span><b id="kOk">0</b><small>Correctos</small></button>
-      <button class="kpi" data-filter="rebajar"><span>🔻</span><b id="kReb">0</b><small>Rebajar SAP</small></button>
-      <button class="kpi" data-filter="revisar"><span>⚠️</span><b id="kRev">0</b><small>Revisar</small></button>
-      <button class="kpi" data-filter="cero"><span>🔵</span><b id="kCero">0</b><small>SAP 0 con stock</small></button>
-    </section>
-
-    <section class="panel work-panel">
-      <div class="search-row">
-        <div class="search-wrap full"><span>🔎</span><input id="searchInput" type="search" placeholder="Buscar código SAP o descripción..." autocomplete="off" /></div>
-      </div>
-      <div class="filter-row" id="filterRow">
-        <button class="filter-chip active" data-filter="todos">📋 Todos <b id="fTodos">0</b></button>
-        <button class="filter-chip" data-filter="pendiente">⏳ Pendientes <b id="fPend">0</b></button>
-        <button class="filter-chip" data-filter="ok">✅ Correctos <b id="fOk">0</b></button>
-        <button class="filter-chip" data-filter="rebajar">🔻 Rebajar SAP <b id="fReb">0</b></button>
-        <button class="filter-chip" data-filter="revisar">⚠️ Revisar <b id="fRev">0</b></button>
-        <button class="filter-chip" data-filter="cero">🔵 SAP 0 <b id="fCero">0</b></button>
-        <button class="filter-chip" data-filter="oculto">🚫 Ocultos <b id="fOcultos">0</b></button>
-      </div>
-      <div class="list-info" id="listInfo">0 materiales encontrados</div>
-      <div class="cards" id="cards"></div>
-    </section>
-  </main>
-
-  <div class="drawer hidden" id="drawer">
-    <div class="drawer-card">
-      <button class="close" id="closeDrawer">×</button>
-      <div class="drawer-head">
-        <span class="box-icon">📦</span>
-        <div>
-          <h2 id="dCode">-</h2>
-          <p id="dDesc">-</p>
-        </div>
-      </div>
-      <div class="detail-grid">
-        <div><small>Stock SAP</small><b id="dSap">0</b></div>
-        <div><small>Stock real</small><input id="realInput" type="number" step="0.01" inputmode="decimal" placeholder="0" /></div>
-      </div>
-      <div class="state-badge" id="dEstado">⏳ Pendiente</div>
-      <p class="small" id="dMeta">Última revisión: sin registro</p>
-      <div class="action-grid">
-        <button class="secondary" id="sameSapBtn">☑ Igual que SAP</button>
-        <button class="success" id="saveBtn">💾 Guardar</button>
-        <button class="danger" id="hideBtn">🚫 Ocultar</button>
-        <button class="secondary" id="unhideBtn">↩ Desocultar</button>
-      </div>
-    </div>
+<header>
+  <div class="wrap">
+    <h1>Bodega SAP</h1>
+    <p>Inventario físico vs stock SAP · Piscicultura Lago Verde</p>
   </div>
+</header>
+<main class="wrap">
+  <section class="panel">
+    <div class="statusbar">
+      <div class="pill" id="sapInfo">Buscando archivo SAP...</div>
+      <div class="pill" id="saveInfo">🟡 Conectando con Google Sheets...</div>
+    </div>
+  </section>
 
-  <div class="toast hidden" id="toast"></div>
-  <script src="app.js"></script>
+  <section class="panel">
+    <b>Respaldo de avance</b>
+    <p class="small">Usa esto para pasar tus materiales ocultos y revisiones entre computador y celular.</p>
+    <button class="btn btn-blue" onclick="exportarRespaldo()">📥 Exportar respaldo</button>
+    <button class="btn btn-gray" onclick="document.getElementById('backupInput').click()">📤 Importar respaldo</button>
+    <input type="file" id="backupInput" accept=".json,application/json" style="display:none" />
+  </section>
+  <section class="panel file" id="manualBox">
+    <b>Carga manual de respaldo</b>
+    <p class="small">Úsalo si aún no existe la carpeta datos o si GitHub demora en actualizar.</p>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
+  </section>
+  <section class="grid" id="kpis">
+    <div class="kpi"><b id="kTotal">0</b><span>Total SAP</span></div>
+    <div class="kpi"><b id="kPend">0</b><span>Pendientes</span></div>
+    <div class="kpi"><b id="kOk">0</b><span>Correctos</span></div>
+    <div class="kpi"><b id="kReb">0</b><span>Rebajar SAP</span></div>
+    <div class="kpi"><b id="kRev">0</b><span>Revisar</span></div>
+    <div class="kpi"><b id="kCero">0</b><span>SAP 0 con stock</span></div>
+  </section>
+  <section class="panel" id="homePanel">
+    <div class="searchbox">
+      <input id="searchInput" type="search" placeholder="Buscar por código SAP o descripción..." autocomplete="off" />
+      <button class="btn btn-blue" onclick="continuarPendiente()">Continuar</button>
+    </div>
+    <div class="results" id="results"></div>
+  </section>
+  <section class="panel hidden" id="detailPanel">
+    <button class="btn btn-gray" onclick="volverBuscador()">← Volver al buscador</button>
+    <div style="height:10px"></div>
+    <div class="detail-title">Código SAP</div><div class="detail-value" id="dCode"></div>
+    <div class="detail-title">Descripción</div><div class="detail-value" id="dDesc"></div>
+    <div class="detail-title">Stock SAP</div><div class="detail-value" id="dSap"></div>
+    <button class="btn btn-gray btn-full" onclick="igualSap()">☑ Igual que SAP</button>
+    <div style="height:10px"></div>
+    <div class="detail-title">Stock real</div><input class="stock-input" id="realInput" type="number" step="0.01" inputmode="decimal" placeholder="0" />
+    <div class="state pendiente" id="dEstado">Pendiente</div>
+    <div class="small" id="dFecha">Última revisión: sin registro</div>
+    <button class="btn btn-green btn-full" onclick="guardarRevision()">💾 Guardar</button>
+    <button class="btn btn-red btn-full" onclick="ocultarMaterial()">🚫 Ocultar</button>
+  </section>
+  <section class="panel">
+    <div class="tabs">
+      <button class="tab active" onclick="setFiltro('rebajar',this)">🔴 Rebajar SAP</button>
+      <button class="tab" onclick="setFiltro('revisar',this)">🟡 Revisar</button>
+      <button class="tab" onclick="setFiltro('cero',this)">🔵 SAP 0</button>
+      <button class="tab" onclick="setFiltro('pendiente',this)">⚪ Pendientes</button>
+      <button class="tab" onclick="setFiltro('oculto',this)">🚫 Ocultos</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Código</th><th>Descripción</th><th>SAP</th><th>Real</th><th>Dif.</th><th>Fecha</th></tr></thead><tbody id="listBody"></tbody></table></div>
+  </section>
+</main>
+<script>
+const OWNER='hardycofre-commits';
+const REPO='bodega-sap';
+const DATOS_PATH='datos';
+const STORAGE_KEY='bodegaSapInventario_v1';
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbxlntU4x4bOg4CQWIL80T0-gmrIKulE65hvqs9D0npSfGPmGCfVYcAMUyv8hKNsfOPMTg/exec';
+let materiales=[], current=null, filtro='rebajar';
+let store=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+function norm(v){return String(v??'').trim()}
+function num(v){if(v===undefined||v===null||v==='')return 0;return Number(String(v).replace(/\./g,'').replace(',','.'))||0}
+function pick(row,names){const keys=Object.keys(row);for(const n of names){let k=keys.find(x=>x.toLowerCase().trim()===n.toLowerCase());if(k)return row[k]}for(const n of names){let k=keys.find(x=>x.toLowerCase().includes(n.toLowerCase()));if(k)return row[k]}return ''}
+
+function setSyncInfo(txt){const el=document.getElementById('saveInfo'); if(el) el.textContent=txt;}
+function save(changedCode){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(store));
+  if(changedCode) sincronizarRegistro(changedCode);
+}
+function registroParaSheets(code){
+  const r=rec(code);
+  return {
+    codigo_sap:String(code),
+    oculto:r.oculto?'SI':'',
+    stock_real:(r.real===undefined || r.real===null)?'':r.real,
+    fecha_revision:r.fecha||'',
+    fecha_oculto:r.fechaOculto||''
+  };
+}
+async function sincronizarRegistro(code){
+  try{
+    setSyncInfo('🟡 Sincronizando con Google Sheets...');
+    const payload={action:'upsert', ...registroParaSheets(code)};
+    await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(payload)
+    });
+    setSyncInfo('🟢 Sincronizado con Google Sheets');
+  }catch(e){
+    setSyncInfo('🔴 No se pudo sincronizar. Quedó guardado local.');
+  }
+}
+async function sincronizarTodoGoogleSheets(){
+  const codigos=Object.keys(store);
+  if(!codigos.length){setSyncInfo('🟢 Sincronizado con Google Sheets');return;}
+  try{
+    setSyncInfo('🟡 Sincronizando avance con Google Sheets...');
+    const payload={action:'syncAll', datos:codigos.map(registroParaSheets)};
+    await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(payload)
+    });
+    setSyncInfo('🟢 Sincronizado con Google Sheets');
+  }catch(e){
+    setSyncInfo('🔴 No se pudo sincronizar. Quedó guardado local.');
+  }
+}
+async function cargarAvanceGoogleSheets(){
+  try{
+    setSyncInfo('🟡 Leyendo Google Sheets...');
+    const r=await fetch(APPS_SCRIPT_URL+'?action=read&t='+Date.now(),{cache:'no-store'});
+    if(!r.ok)throw new Error('Sin respuesta');
+    const data=await r.json();
+    const rows=Array.isArray(data)?data:(data.datos||data.data||data.rows||[]);
+    const nuevo={...store};
+    rows.forEach(row=>{
+      const code=String(row.codigo_sap||row.codigo||row.Codigo||row.Código||'').trim();
+      if(!code)return;
+      nuevo[code]=nuevo[code]||{};
+      const oculto=String(row.oculto||'').toUpperCase();
+      if(oculto==='SI' || oculto==='TRUE' || oculto==='1')nuevo[code].oculto=true;
+      const real=row.stock_real ?? row.real ?? row.StockReal ?? '';
+      if(real!=='' && real!==null && real!==undefined)nuevo[code].real=Number(String(real).replace(',','.'));
+      if(row.fecha_revision)nuevo[code].fecha=row.fecha_revision;
+      if(row.fecha_oculto)nuevo[code].fechaOculto=row.fecha_oculto;
+    });
+    store=nuevo;
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(store));
+    setSyncInfo('🟢 Sincronizado con Google Sheets');
+    renderAll();
+  }catch(e){
+    setSyncInfo('🟠 Sin conexión a Google Sheets. Usando guardado local.');
+  }
+}
+
+function rec(code){store[code]=store[code]||{};return store[code]}
+function fechaArchivoGithub(f){
+  const n=f.name||'';
+  const m=n.match(/(20\d{2})[-_]?([01]\d)[-_]?([0-3]\d)[T _-]?([0-2]\d)?([0-5]\d)?([0-5]\d)?/);
+  if(m){
+    const yyyy=m[1], mm=m[2], dd=m[3], hh=m[4]||'00', mi=m[5]||'00', ss=m[6]||'00';
+    return new Date(`${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`).getTime();
+  }
+  return 0;
+}
+async function cargarDesdeGithub(){
+  try{
+    document.getElementById('sapInfo').textContent='Buscando último Excel en GitHub...';
+    const api=`https://api.github.com/repos/${OWNER}/${REPO}/contents/${DATOS_PATH}?t=${Date.now()}`;
+    const r=await fetch(api,{cache:'no-store'});
+    if(!r.ok)throw new Error('Sin carpeta datos');
+    const files=await r.json();
+    const excels=files
+      .filter(f=>f.type==='file' && /\.(xlsx|xls|csv)$/i.test(f.name))
+      .sort((a,b)=>{
+        const fa=fechaArchivoGithub(a), fb=fechaArchivoGithub(b);
+        if(fa!==fb)return fb-fa;
+        return b.name.localeCompare(a.name);
+      });
+    if(!excels.length)throw new Error('Sin Excel en datos');
+    const file=excels[0];
+    document.getElementById('sapInfo').textContent='Último SAP cargado: '+file.name;
+    await cargarExcelUrl(file.download_url+'?t='+Date.now());
+    document.getElementById('manualBox').classList.add('hidden');
+  }catch(e){
+    document.getElementById('sapInfo').textContent='Sin Excel automático. Usa carga manual o sube un Excel a datos.';
+  }
+}
+async function cargarExcelUrl(url){const ab=await (await fetch(url,{cache:'no-store'})).arrayBuffer();procesarWorkbook(XLSX.read(ab,{type:'array'}));}
+function procesarWorkbook(wb){const sheet=wb.Sheets[wb.SheetNames[0]];const rows=XLSX.utils.sheet_to_json(sheet,{defval:''});materiales=rows.map(r=>{const codigo=norm(pick(r,['Material','Código','Codigo','Cod.Material','N° material']));const desc=norm(pick(r,['Texto breve de material','Texto breve','Descripción','Descripcion','Denominación']));const sap=num(pick(r,['Libre utilización','Libre utilizacion','Stock libre utilización','Stock','Cantidad']));const um=norm(pick(r,['Unidad medida base','UMB','Unidad','UM']));const almacen=norm(pick(r,['Almacén','Almacen','Centro']));return{codigo,desc,sap,um,almacen,search:(codigo+' '+desc).toLowerCase()}}).filter(x=>x.codigo&&x.desc);renderAll();}
+document.getElementById('fileInput').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;document.getElementById('sapInfo').textContent='Archivo manual: '+f.name;const ab=await f.arrayBuffer();procesarWorkbook(XLSX.read(ab,{type:'array'}));});
+document.getElementById('searchInput').addEventListener('input',renderResults);
+function estado(m){const r=store[m.codigo];if(r?.oculto)return'oculto';if(!r||r.real===undefined)return'pendiente';const real=Number(r.real);if(m.sap===0&&real>0)return'cero';if(real<m.sap)return'rebajar';if(real>m.sap)return'revisar';return'ok'}
+function estadoTexto(e,m){if(e==='ok')return'🟢 Coincide';if(e==='rebajar')return`🔴 Rebajar ${m.sap-rec(m.codigo).real}`;if(e==='revisar')return'🟡 Revisar diferencia';if(e==='cero')return'🔵 SAP 0 con stock';if(e==='oculto')return'🚫 Oculto';return'⚪ Pendiente'}
+function renderKpis(){let t=materiales.filter(m=>!rec(m.codigo).oculto&&m.sap>0).length, p=0, ok=0, reb=0, rev=0, cero=0;for(const m of materiales){const e=estado(m);if(e==='pendiente'&&!rec(m.codigo).oculto&&m.sap>0)p++;if(e==='ok')ok++;if(e==='rebajar')reb++;if(e==='revisar')rev++;if(e==='cero')cero++;}kTotal.textContent=t;kPend.textContent=p;kOk.textContent=ok;kReb.textContent=reb;kRev.textContent=rev;kCero.textContent=cero;}
+function renderResults(){const q=searchInput.value.toLowerCase().trim();let base=materiales.filter(m=>!rec(m.codigo).oculto&&(q?m.search.includes(q):m.sap>0));
+  const total=base.length;
+  let list=base.slice(0,300);
+  results.innerHTML=`<p class="small"><b>${total}</b> materiales encontrados${total>300?' · mostrando primeros 300 para mantener velocidad':''}</p>`+list.map(m=>`<div class="item" onclick="abrir('${m.codigo}')"><div class="code">${m.codigo} · SAP ${m.sap} ${m.um||''}</div><div class="desc">${m.desc}</div><div class="meta">${estadoTexto(estado(m),m)} · Última revisión: ${rec(m.codigo).fecha||'sin registro'}</div></div>`).join('')||'<p class="small">Sin resultados.</p>';}
+function abrir(codigo){current=materiales.find(m=>m.codigo===codigo);if(!current)return;homePanel.classList.add('hidden');detailPanel.classList.remove('hidden');dCode.textContent=current.codigo;dDesc.textContent=current.desc;dSap.textContent=current.sap+' '+(current.um||'');const r=rec(current.codigo);realInput.value=r.real??'';dFecha.textContent='Última revisión: '+(r.fecha||'sin registro');actualizaEstadoDetalle();realInput.focus();}
+realInput.addEventListener('input',actualizaEstadoDetalle);
+realInput.addEventListener('change',()=>{if(current && realInput.value!=='')guardarRevision(true);});
+function actualizaEstadoDetalle(){if(!current)return;let temp=JSON.parse(JSON.stringify(store));if(realInput.value!=='')temp[current.codigo]={...temp[current.codigo],real:Number(realInput.value)};let old=store;store=temp;const e=estado(current);store=old;dEstado.className='state '+e;dEstado.textContent=estadoTexto(e,current);}
+function volverBuscador(){detailPanel.classList.add('hidden');homePanel.classList.remove('hidden');searchInput.focus();renderAll();}
+function igualSap(){if(current){realInput.value=current.sap;actualizaEstadoDetalle();guardarRevision(true);}}
+function guardarRevision(silencioso=false){if(!current)return;if(realInput.value===''){if(!silencioso)alert('Ingresa stock real o usa Igual que SAP.');return;}store[current.codigo]={...rec(current.codigo),real:Number(realInput.value),fecha:new Date().toLocaleDateString('es-CL')};save(current.codigo);searchInput.value='';if(!silencioso)volverBuscador();else {dFecha.textContent='Última revisión: '+rec(current.codigo).fecha;renderAll();}}
+function ocultarMaterial(){if(!current)return;store[current.codigo]={...rec(current.codigo),oculto:true,fechaOculto:new Date().toLocaleDateString('es-CL')};save(current.codigo);searchInput.value='';volverBuscador();}
+function continuarPendiente(){let m=materiales.find(x=>!rec(x.codigo).oculto&&x.sap>0&&estado(x)==='pendiente');if(m)abrir(m.codigo);else alert('No hay pendientes con stock SAP mayor a cero.');}
+function setFiltro(f,el){filtro=f;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderList();}
+function renderList(){let list=materiales.filter(m=>estado(m)===filtro);if(filtro==='pendiente')list=list.filter(m=>m.sap>0&&!rec(m.codigo).oculto);listBody.innerHTML=list.map(m=>{const r=rec(m.codigo);const real=r.real??'';const dif=real===''?'':(m.sap-Number(real));return`<tr onclick="abrir('${m.codigo}')"><td>${m.codigo}</td><td>${m.desc}</td><td class="num">${m.sap}</td><td class="num">${real}</td><td class="num">${dif}</td><td>${r.fecha||r.fechaOculto||''}</td></tr>`}).join('')||'<tr><td colspan="6" class="small">Sin materiales en este listado.</td></tr>';}
+function renderAll(){renderKpis();renderResults();renderList();}
+
+function exportarRespaldo(){
+  const payload={
+    app:'bodega-sap',
+    version:'1.1',
+    fecha:new Date().toISOString(),
+    datos:store
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  const fecha=new Date().toISOString().slice(0,10);
+  a.href=URL.createObjectURL(blob);
+  a.download='respaldo_bodega_sap_'+fecha+'.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+}
+
+document.getElementById('backupInput').addEventListener('change',async e=>{
+  const f=e.target.files[0];
+  if(!f)return;
+  try{
+    const text=await f.text();
+    const payload=JSON.parse(text);
+    const datos=payload.datos||payload;
+    if(!datos || typeof datos!=='object' || Array.isArray(datos))throw new Error('Formato no válido');
+    const ok=confirm('¿Deseas reemplazar el avance actual por este respaldo?');
+    if(!ok)return;
+    store=datos;
+    save();
+    sincronizarTodoGoogleSheets();
+    renderAll();
+    alert('Respaldo importado correctamente.');
+  }catch(err){
+    alert('No se pudo importar el respaldo. Verifica que sea un archivo JSON válido.');
+  }finally{
+    e.target.value='';
+  }
+});
+
+cargarAvanceGoogleSheets();
+cargarDesdeGithub();
+renderAll();
+setTimeout(sincronizarTodoGoogleSheets,3000);
+</script>
 </body>
 </html>
+

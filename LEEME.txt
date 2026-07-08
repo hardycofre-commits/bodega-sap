@@ -1,1 +1,3 @@
 Reemplaza solo index.html.
+El botón Continuar queda oculto, pero el id continueBtn queda presente para que app.js no falle.
+Esto corrige que la app no cargue datos.
