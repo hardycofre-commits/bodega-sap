@@ -1,6 +1,8 @@
 const CONFIG = {
   OWNER: 'hardycofre-commits',
   REPO: 'bodega-sap',
+  REPOS_FALLBACK: ['bodega-sap', 'inventario-bodega-sap'],
+  BRANCHES_FALLBACK: ['main', 'master'],
   DATOS_PATH: 'datos',
   SHEETS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbxlntU4x4bOg4CQWIL80T0-gmrIKulE65hvqs9D0npSfGPmGCfVYcAMUyv8hKNsfOPMTg/exec',
   LOCAL_KEY: 'bodegaSap_v55_cache'
@@ -34,19 +36,63 @@ function fileDate(name){
   return new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]||'00'}:${m[5]||'00'}:${m[6]||'00'}`).getTime() || 0;
 }
 
+async function listarDatosGithub(){
+  const repos = CONFIG.REPOS_FALLBACK || [CONFIG.REPO];
+  const branches = CONFIG.BRANCHES_FALLBACK || ['main'];
+
+  let lastError = '';
+
+  for (const repo of repos) {
+    for (const branch of branches) {
+      const api = `https://api.github.com/repos/${CONFIG.OWNER}/${repo}/contents/${CONFIG.DATOS_PATH}?ref=${branch}&t=${Date.now()}`;
+      try {
+        const r = await fetch(api, { cache: 'no-store' });
+        if (!r.ok) {
+          lastError = `${repo}/${branch}: HTTP ${r.status}`;
+          continue;
+        }
+        const files = await r.json();
+        if (!Array.isArray(files)) {
+          lastError = `${repo}/${branch}: respuesta no válida`;
+          continue;
+        }
+        return { repo, branch, files };
+      } catch (err) {
+        lastError = `${repo}/${branch}: ${err.message}`;
+      }
+    }
+  }
+
+  throw new Error(lastError || 'No se pudo leer datos/');
+}
+
 async function cargarUltimoExcelGithub(){
   setStatus(els.sapStatus,'🔎 Buscando último Excel en GitHub...');
-  const api=`https://api.github.com/repos/${CONFIG.OWNER}/${CONFIG.REPO}/contents/${CONFIG.DATOS_PATH}?t=${Date.now()}`;
-  const r=await fetch(api,{cache:'no-store'});
-  if(!r.ok) throw new Error('No se pudo leer datos/');
-  const files=await r.json();
-  const excels=files.filter(f=>f.type==='file' && /\.(xlsx|xls|csv)$/i.test(f.name)).sort((a,b)=>{
-    const da=fileDate(a.name), db=fileDate(b.name); if(da!==db) return db-da; return b.name.localeCompare(a.name);
-  });
-  if(!excels.length) throw new Error('No hay Excel en datos/');
-  const f=excels[0]; sapFileName=f.name;
-  const ab=await (await fetch(f.download_url+'?t='+Date.now(),{cache:'no-store'})).arrayBuffer();
+
+  const result = await listarDatosGithub();
+
+  const excels = result.files
+    .filter(f => f.type === 'file' && /\.(xlsx|xls|csv)$/i.test(f.name))
+    .sort((a,b)=>{
+      const da=fileDate(a.name), db=fileDate(b.name);
+      if(da!==db) return db-da;
+      return b.name.localeCompare(a.name);
+    });
+
+  if(!excels.length) {
+    throw new Error(`No hay Excel en ${result.repo}/${CONFIG.DATOS_PATH}/`);
+  }
+
+  const f = excels[0];
+  sapFileName = f.name;
+
+  const url = f.download_url || `https://raw.githubusercontent.com/${CONFIG.OWNER}/${result.repo}/${result.branch}/${CONFIG.DATOS_PATH}/${encodeURIComponent(f.name)}`;
+  const fileResp = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), { cache:'no-store' });
+  if(!fileResp.ok) throw new Error(`No se pudo descargar ${f.name}: HTTP ${fileResp.status}`);
+
+  const ab = await fileResp.arrayBuffer();
   procesarWorkbook(XLSX.read(ab,{type:'array'}));
+
   setStatus(els.sapStatus,`✅ Último SAP cargado: ${f.name}`,'ok');
 }
 
@@ -120,7 +166,7 @@ function continuar(){ const m=materiales.find(x=>estado(x)==='pendiente'); if(m)
 
 async function init(){
   loadCache();
-  try{ await cargarUltimoExcelGithub(); }catch(e){ setStatus(els.sapStatus,'❌ No se pudo leer la carpeta datos del repositorio','error'); }
+  try{ await cargarUltimoExcelGithub(); }catch(e){ setStatus(els.sapStatus,'❌ No se pudo leer la carpeta datos: '+e.message,'error'); }
   await cargarGoogleSheets();
   render();
 }
