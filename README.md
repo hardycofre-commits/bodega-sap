@@ -1,37 +1,36 @@
-# Bodega SAP v6.0
+# Bodega SAP v5.5 PRO
 
-Versión reorganizada y profesional.
+Versión de avance estable para continuar el proyecto.
 
 ## Qué hace
+- Mantiene el diseño profesional tipo aplicación móvil.
+- Usa el logo Invermar en `assets/logo.png`.
+- Busca automáticamente el último archivo Excel dentro de la carpeta `datos/` del repositorio GitHub.
+- Lee Google Sheets al iniciar para recuperar revisiones y ocultos.
+- Guarda en Google Sheets al presionar Guardar, Ocultar o Desocultar.
+- Filtros funcionales: Todos, Pendientes, Correctos, Rebajar SAP, Revisar, SAP 0 y Ocultos.
 
-- Busca automáticamente el último Excel dentro de `datos/` del repositorio `hardycofre-commits/bodega-sap`.
-- Lee Google Sheets para ocultos, stock real y fechas.
-- Calcula estados automáticamente: Pendiente, Correcto, Rebajar SAP, Revisar, SAP 0 y Oculto.
-- Guarda cambios en Google Sheets.
+## Estructura requerida en GitHub
 
-## Importante
-
-En GitHub debe existir:
-
-```text
+```
 bodega-sap/
 ├─ index.html
 ├─ styles.css
-├─ config.js
-├─ github.js
-├─ sheets.js
-├─ inventario.js
-├─ ui.js
 ├─ app.js
-├─ assets/logo.png
+├─ README.md
+├─ assets/
+│  └─ logo.png
 └─ datos/
    └─ EXPORT-....xlsx
 ```
 
-## Apps Script
+## Importante
+El repositorio configurado en `app.js` es:
 
-Pegar el contenido de `apps_script.gs` en Google Sheets > Extensiones > Apps Script.
-Luego implementar como Web App:
+```js
+OWNER = 'hardycofre-commits'
+REPO = 'bodega-sap'
+DATOS_PATH = 'datos'
+```
 
-- Ejecutar como: Yo
-- Acceso: Cualquier persona
+Si GitHub muestra error leyendo datos, revisar que la carpeta se llame exactamente `datos` y que tenga al menos un archivo `.xlsx`, `.xls` o `.csv`.

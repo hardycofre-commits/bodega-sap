@@ -2,15 +2,15 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Bodega SAP v6</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bodega SAP v5.5</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-  <header class="app-header">
-    <div class="header-inner">
-      <img src="assets/logo.png" alt="Invermar" class="logo" />
+  <header class="hero">
+    <div class="container hero-inner">
+      <div class="brand-card"><img src="assets/logo.png" alt="Invermar" /></div>
       <div>
         <h1>Bodega SAP</h1>
         <p>Inventario físico vs stock SAP · Piscicultura Lago Verde</p>
@@ -18,16 +18,16 @@
     </div>
   </header>
 
-  <main class="app-main">
+  <main class="container app-shell">
     <section class="panel status-panel">
-      <div class="status-grid">
-        <div class="status-pill" id="sapStatus"><span class="dot gray"></span><span>Buscando último Excel en GitHub...</span></div>
-        <div class="status-pill" id="sheetStatus"><span class="dot gray"></span><span>Conectando con Google Sheets...</span></div>
+      <div class="status-row">
+        <span class="pill" id="sapStatus">🔎 Buscando último Excel en GitHub...</span>
+        <span class="pill" id="sheetStatus">☁️ Conectando con Google Sheets...</span>
       </div>
-      <div class="source-note" id="sourceNote">El sistema usa el último archivo de la carpeta <b>datos/</b> del repositorio y Google Sheets para los cambios.</div>
+      <p class="hint">El sistema toma automáticamente el último archivo Excel desde la carpeta <b>datos/</b> del repositorio y usa Google Sheets para guardar revisiones y ocultos.</p>
     </section>
 
-    <section class="kpis" id="kpis">
+    <section class="kpi-grid">
       <button class="kpi active" data-filter="todos"><span>📦</span><b id="kTotal">0</b><small>Total SAP</small></button>
       <button class="kpi" data-filter="pendiente"><span>⏳</span><b id="kPend">0</b><small>Pendientes</small></button>
       <button class="kpi" data-filter="ok"><span>✅</span><b id="kOk">0</b><small>Correctos</small></button>
@@ -37,53 +37,50 @@
     </section>
 
     <section class="panel work-panel">
-      <div class="toolbar">
-        <label class="search-wrap">
-          <span>🔎</span>
-          <input id="searchInput" type="search" placeholder="Buscar código SAP o descripción..." autocomplete="off" />
-        </label>
-        <button id="continueBtn" class="primary-btn">Continuar →</button>
+      <div class="search-row">
+        <div class="search-wrap"><span>🔎</span><input id="searchInput" type="search" placeholder="Buscar código SAP o descripción..." autocomplete="off" /></div>
+        <button class="primary" id="continueBtn">Continuar →</button>
       </div>
-
       <div class="filter-row" id="filterRow">
-        <button class="filter-btn active" data-filter="todos">📋 Todos <b id="fTodos">0</b></button>
-        <button class="filter-btn" data-filter="pendiente">⏳ Pendientes <b id="fPend">0</b></button>
-        <button class="filter-btn" data-filter="ok">✅ Correctos <b id="fOk">0</b></button>
-        <button class="filter-btn" data-filter="rebajar">🔻 Rebajar SAP <b id="fReb">0</b></button>
-        <button class="filter-btn" data-filter="revisar">⚠️ Revisar <b id="fRev">0</b></button>
-        <button class="filter-btn" data-filter="cero">🔵 SAP 0 <b id="fCero">0</b></button>
-        <button class="filter-btn" data-filter="oculto">🚫 Ocultos <b id="fOculto">0</b></button>
+        <button class="filter-chip active" data-filter="todos">📋 Todos <b id="fTodos">0</b></button>
+        <button class="filter-chip" data-filter="pendiente">⏳ Pendientes <b id="fPend">0</b></button>
+        <button class="filter-chip" data-filter="ok">✅ Correctos <b id="fOk">0</b></button>
+        <button class="filter-chip" data-filter="rebajar">🔻 Rebajar SAP <b id="fReb">0</b></button>
+        <button class="filter-chip" data-filter="revisar">⚠️ Revisar <b id="fRev">0</b></button>
+        <button class="filter-chip" data-filter="cero">🔵 SAP 0 <b id="fCero">0</b></button>
+        <button class="filter-chip" data-filter="oculto">🚫 Ocultos <b id="fOcultos">0</b></button>
       </div>
-
-      <div class="list-summary" id="listSummary">0 materiales encontrados</div>
-      <div class="material-list" id="materialList"></div>
+      <div class="list-info" id="listInfo">0 materiales encontrados</div>
+      <div class="cards" id="cards"></div>
     </section>
   </main>
 
-  <div class="drawer-backdrop hidden" id="drawerBackdrop"></div>
-  <section class="drawer hidden" id="detailDrawer" aria-live="polite">
-    <div class="drawer-handle"></div>
-    <button class="close-btn" id="closeDrawer">×</button>
-    <div class="detail-code" id="dCode"></div>
-    <h2 id="dDesc"></h2>
-    <div class="detail-meta">
-      <div><small>Stock SAP</small><strong id="dSap"></strong></div>
-      <div><small>Stock real</small><input id="realInput" type="number" step="0.01" inputmode="decimal" placeholder="0" /></div>
+  <div class="drawer hidden" id="drawer">
+    <div class="drawer-card">
+      <button class="close" id="closeDrawer">×</button>
+      <div class="drawer-head">
+        <span class="box-icon">📦</span>
+        <div>
+          <h2 id="dCode">-</h2>
+          <p id="dDesc">-</p>
+        </div>
+      </div>
+      <div class="detail-grid">
+        <div><small>Stock SAP</small><b id="dSap">0</b></div>
+        <div><small>Stock real</small><input id="realInput" type="number" step="0.01" inputmode="decimal" placeholder="0" /></div>
+      </div>
+      <div class="state-badge" id="dEstado">⏳ Pendiente</div>
+      <p class="small" id="dMeta">Última revisión: sin registro</p>
+      <div class="action-grid">
+        <button class="secondary" id="sameSapBtn">☑ Igual que SAP</button>
+        <button class="success" id="saveBtn">💾 Guardar</button>
+        <button class="danger" id="hideBtn">🚫 Ocultar</button>
+        <button class="secondary" id="unhideBtn">↩ Desocultar</button>
+      </div>
     </div>
-    <div class="state-card" id="dEstado">⏳ Pendiente</div>
-    <div class="small-info" id="dFecha">Última revisión: sin registro</div>
-    <div class="action-grid">
-      <button class="secondary-btn" id="equalBtn">☑ Igual que SAP</button>
-      <button class="success-btn" id="saveBtn">💾 Guardar</button>
-      <button class="danger-btn" id="hideBtn">🚫 Ocultar</button>
-    </div>
-  </section>
+  </div>
 
-  <script src="config.js"></script>
-  <script src="github.js"></script>
-  <script src="sheets.js"></script>
-  <script src="inventario.js"></script>
-  <script src="ui.js"></script>
+  <div class="toast hidden" id="toast"></div>
   <script src="app.js"></script>
 </body>
 </html>
