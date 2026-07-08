@@ -1,33 +1,37 @@
-# Bodega SAP v5.3
+# Bodega SAP v6.0
 
-Versión con filtros funcionales por estado.
+Versión reorganizada y profesional.
 
-## Cambios principales
+## Qué hace
 
-- Botones de filtro funcionales: Todos, Pendientes, Correctos, Rebajar SAP, Revisar, SAP 0 y Ocultos.
-- Cada botón muestra cantidad actualizada.
-- Al apretar Rebajar SAP muestra solo los materiales que tienen SAP mayor que el stock real.
-- Al cargar un nuevo Excel desde `datos/`, los estados se recalculan automáticamente usando Google Sheets como memoria.
-- Carga automática del último Excel disponible en la carpeta `datos` del repositorio.
-- Sin carga manual.
+- Busca automáticamente el último Excel dentro de `datos/` del repositorio `hardycofre-commits/bodega-sap`.
+- Lee Google Sheets para ocultos, stock real y fechas.
+- Calcula estados automáticamente: Pendiente, Correcto, Rebajar SAP, Revisar, SAP 0 y Oculto.
+- Guarda cambios en Google Sheets.
 
-## Archivos
+## Importante
 
-- `index.html`
-- `styles.css`
-- `app.js`
-- `apps_script.gs`
-- `logo.png`
-- `README.md`
+En GitHub debe existir:
 
-## Configuración importante
-
-En `app.js` está configurado:
-
-```js
-const OWNER = 'hardycofre-commits';
-const REPO = 'bodega-sap';
-const DATOS_PATH = 'datos';
+```text
+bodega-sap/
+├─ index.html
+├─ styles.css
+├─ config.js
+├─ github.js
+├─ sheets.js
+├─ inventario.js
+├─ ui.js
+├─ app.js
+├─ assets/logo.png
+└─ datos/
+   └─ EXPORT-....xlsx
 ```
 
-El Excel SAP debe estar dentro de la carpeta `datos/` del repositorio.
+## Apps Script
+
+Pegar el contenido de `apps_script.gs` en Google Sheets > Extensiones > Apps Script.
+Luego implementar como Web App:
+
+- Ejecutar como: Yo
+- Acceso: Cualquier persona
