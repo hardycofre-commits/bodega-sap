@@ -155,7 +155,8 @@ async function init(){
 document.addEventListener('click',e=>{ const f=e.target.closest('[data-filter]')?.dataset.filter; if(f){ filtro=f; render(); } });
 els.searchInput.addEventListener('input',render);
 els.realInput.addEventListener('input',updateDrawerState);
-$('continueBtn').addEventListener('click',continuar);
+const continueBtnEl = $('continueBtn');
+if(continueBtnEl) continueBtnEl.addEventListener('click',continuar);
 $('closeDrawer').addEventListener('click',closeDrawer);
 $('sameSapBtn').addEventListener('click',sameSap);
 $('saveBtn').addEventListener('click',saveCurrent);
