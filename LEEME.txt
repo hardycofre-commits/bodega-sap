@@ -1,1 +1,0 @@
-Reemplaza solo app.js. Corrige la carga cuando el botón Continuar no existe en index.html.
