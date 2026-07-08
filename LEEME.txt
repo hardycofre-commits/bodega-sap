@@ -1,0 +1,2 @@
+Reemplaza en GitHub el archivo index.html y agrega la carpeta assets/logo.png.
+No se modificó la lógica del sistema. Solo se dejó el logo en la ruta correcta.
