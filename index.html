@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bodega SAP v5.2</title>
+  <title>Bodega SAP v5.3</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -47,18 +47,16 @@
         <button class="btn btn-primary" id="continueBtn">Continuar ➜</button>
       </div>
 
-      <div class="filter-row">
-        <label for="stateFilter">Estado:</label>
-        <select id="stateFilter">
-          <option value="pendiente">⏳ Pendientes</option>
-          <option value="todos">📋 Todos</option>
-          <option value="ok">✅ Correctos</option>
-          <option value="rebajar">🔻 Rebajar SAP</option>
-          <option value="revisar">⚠️ Revisar</option>
-          <option value="cero">🔵 SAP 0 con stock</option>
-          <option value="oculto">🚫 Ocultos</option>
-        </select>
-        <button class="btn btn-soft" id="refreshBtn">🔄 Actualizar</button>
+      <div class="filter-title">Filtrar por estado</div>
+      <div class="filter-chips" id="filterChips">
+        <button class="chip" data-filter="todos">📋 Todos <b id="cTodos">0</b></button>
+        <button class="chip active" data-filter="pendiente">⏳ Pendientes <b id="cPend">0</b></button>
+        <button class="chip" data-filter="ok">✅ Correctos <b id="cOk">0</b></button>
+        <button class="chip" data-filter="rebajar">🔻 Rebajar SAP <b id="cReb">0</b></button>
+        <button class="chip" data-filter="revisar">⚠️ Revisar <b id="cRev">0</b></button>
+        <button class="chip" data-filter="cero">🔵 SAP 0 <b id="cCero">0</b></button>
+        <button class="chip" data-filter="oculto">🚫 Ocultos <b id="cOculto">0</b></button>
+        <button class="chip refresh" id="refreshBtn" type="button">🔄 Actualizar</button>
       </div>
 
       <div class="result-count" id="resultCount">0 materiales encontrados</div>

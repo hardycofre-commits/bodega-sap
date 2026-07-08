@@ -1,41 +1,33 @@
-# Bodega SAP v5.2
+# Bodega SAP v5.3
 
-Versión simplificada:
+Versión con filtros funcionales por estado.
 
-- No usa carga manual.
-- Busca automáticamente el último Excel dentro de la carpeta `datos` del repositorio GitHub.
-- Lee y guarda avances en Google Sheets mediante Apps Script.
-- Mantiene materiales ocultos, stock real y fechas aunque se cambie el Excel SAP.
+## Cambios principales
 
-## Estructura esperada en GitHub
+- Botones de filtro funcionales: Todos, Pendientes, Correctos, Rebajar SAP, Revisar, SAP 0 y Ocultos.
+- Cada botón muestra cantidad actualizada.
+- Al apretar Rebajar SAP muestra solo los materiales que tienen SAP mayor que el stock real.
+- Al cargar un nuevo Excel desde `datos/`, los estados se recalculan automáticamente usando Google Sheets como memoria.
+- Carga automática del último Excel disponible en la carpeta `datos` del repositorio.
+- Sin carga manual.
 
-```text
-bodega-sap/
-├─ index.html
-├─ styles.css
-├─ app.js
-├─ logo.png
-├─ README.md
-└─ datos/
-   └─ EXPORT-2026-07-07T232521.251.xlsx
-```
+## Archivos
 
-Puedes dejar varios Excel dentro de `datos`. La app toma el más reciente según la fecha del nombre.
+- `index.html`
+- `styles.css`
+- `app.js`
+- `apps_script.gs`
+- `logo.png`
+- `README.md`
 
-## Apps Script
+## Configuración importante
 
-Copia el contenido de `apps_script.gs` en Google Sheets → Extensiones → Apps Script.
-Luego implementa una nueva versión como Web App:
-
-- Ejecutar como: Yo
-- Acceso: Cualquier persona
-
-## Configuración principal
-
-En `app.js`:
+En `app.js` está configurado:
 
 ```js
 const OWNER = 'hardycofre-commits';
 const REPO = 'bodega-sap';
 const DATOS_PATH = 'datos';
 ```
+
+El Excel SAP debe estar dentro de la carpeta `datos/` del repositorio.

@@ -13,11 +13,12 @@ let filtro = 'pendiente';
 const $ = (id) => document.getElementById(id);
 const els = {
   sapInfo: $('sapInfo'), sheetInfo: $('sheetInfo'), sapMeta: $('sapMeta'), searchInput: $('searchInput'),
-  stateFilter: $('stateFilter'), results: $('results'), resultCount: $('resultCount'), continueBtn: $('continueBtn'),
+  filterChips: $('filterChips'), results: $('results'), resultCount: $('resultCount'), continueBtn: $('continueBtn'),
   refreshBtn: $('refreshBtn'), detailPanel: $('detailPanel'), closeDetail: $('closeDetail'), dCode: $('dCode'),
   dDesc: $('dDesc'), dSap: $('dSap'), dEstado: $('dEstado'), dFecha: $('dFecha'), realInput: $('realInput'),
   equalSapBtn: $('equalSapBtn'), saveBtn: $('saveBtn'), hideBtn: $('hideBtn'),
-  kTotal: $('kTotal'), kPend: $('kPend'), kOk: $('kOk'), kReb: $('kReb'), kRev: $('kRev'), kCero: $('kCero')
+  kTotal: $('kTotal'), kPend: $('kPend'), kOk: $('kOk'), kReb: $('kReb'), kRev: $('kRev'), kCero: $('kCero'),
+  cTodos: $('cTodos'), cPend: $('cPend'), cOk: $('cOk'), cReb: $('cReb'), cRev: $('cRev'), cCero: $('cCero'), cOculto: $('cOculto')
 };
 
 function norm(v){ return String(v ?? '').trim(); }
@@ -177,7 +178,7 @@ function estadoInfo(e){
 }
 
 function renderKpis(){
-  let total=0, pend=0, ok=0, reb=0, rev=0, cero=0;
+  let total=0, pend=0, ok=0, reb=0, rev=0, cero=0, oculto=0;
   for(const m of materiales){
     const e = estado(m);
     if(e !== 'oculto' && m.sap > 0) total++;
@@ -186,8 +187,15 @@ function renderKpis(){
     if(e === 'rebajar') reb++;
     if(e === 'revisar') rev++;
     if(e === 'cero') cero++;
+    if(e === 'oculto') oculto++;
   }
   els.kTotal.textContent=total; els.kPend.textContent=pend; els.kOk.textContent=ok; els.kReb.textContent=reb; els.kRev.textContent=rev; els.kCero.textContent=cero;
+  els.cTodos.textContent=total; els.cPend.textContent=pend; els.cOk.textContent=ok; els.cReb.textContent=reb; els.cRev.textContent=rev; els.cCero.textContent=cero; els.cOculto.textContent=oculto;
+}
+
+function prioridad(m){
+  const orden = {rebajar:1, revisar:2, pendiente:3, cero:4, ok:5, oculto:6};
+  return orden[estado(m)] || 9;
 }
 
 function filteredMaterials(){
@@ -198,7 +206,7 @@ function filteredMaterials(){
     if(filtro === 'todos') return e !== 'oculto';
     if(filtro === 'pendiente') return e === 'pendiente' && m.sap > 0;
     return e === filtro;
-  });
+  }).sort((a,b) => prioridad(a) - prioridad(b) || String(a.codigo).localeCompare(String(b.codigo)));
 }
 
 function renderResults(){
@@ -208,11 +216,14 @@ function renderResults(){
   if(!show.length){ els.results.innerHTML = '<div class="empty">Sin materiales para mostrar.</div>'; return; }
   els.results.innerHTML = show.map(m => {
     const r = rec(m.codigo), e = estado(m), [txt, cls] = estadoInfo(e);
+    const real = (r.real === undefined || r.real === null || r.real === '') ? '—' : r.real;
+    const dif = real === '—' ? '—' : (m.sap - Number(r.real));
     return `<article class="material-card" data-code="${escapeHtml(m.codigo)}">
       <div>
-        <div class="material-code">${escapeHtml(m.codigo)} · SAP ${m.sap} ${escapeHtml(m.um || '')}</div>
+        <div class="material-code">${escapeHtml(m.codigo)}</div>
         <div class="material-desc">${escapeHtml(m.desc)}</div>
-        <div class="material-meta">Última revisión: ${escapeHtml(r.fecha || r.fechaOculto || 'sin registro')} · Archivo: ${escapeHtml(sapFileName || 'sin archivo')}</div>
+        <div class="stock-line"><span>📘 SAP <b>${m.sap}</b></span><span>📦 Real <b>${escapeHtml(real)}</b></span><span>↔ Dif. <b>${escapeHtml(dif)}</b></span></div>
+        <div class="material-meta">Última revisión: ${escapeHtml(r.fecha || r.fechaOculto || 'sin registro')}</div>
       </div>
       <span class="badge ${cls}">${txt}</span>
     </article>`;
@@ -280,7 +291,13 @@ async function refreshAll(){
 }
 
 els.searchInput.addEventListener('input', renderResults);
-els.stateFilter.addEventListener('change', () => { filtro = els.stateFilter.value; renderResults(); });
+els.filterChips.addEventListener('click', (ev) => {
+  const btn = ev.target.closest('[data-filter]');
+  if(!btn) return;
+  filtro = btn.dataset.filter;
+  els.filterChips.querySelectorAll('.chip[data-filter]').forEach(b => b.classList.toggle('active', b === btn));
+  renderResults();
+});
 els.results.addEventListener('click', (ev) => { const card = ev.target.closest('.material-card'); if(card) abrir(card.dataset.code); });
 els.continueBtn.addEventListener('click', continuarPendiente);
 els.refreshBtn.addEventListener('click', refreshAll);
