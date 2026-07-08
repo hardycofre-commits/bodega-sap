@@ -108,7 +108,34 @@ function counts(){ const c={todos:materiales.length,pendiente:0,ok:0,rebajar:0,r
 function updateCounts(){ const c=counts(); kTotal.textContent=c.todos; kPend.textContent=c.pendiente; kOk.textContent=c.ok; kReb.textContent=c.rebajar; kRev.textContent=c.revisar; kCero.textContent=c.cero; fTodos.textContent=c.todos; fPend.textContent=c.pendiente; fOk.textContent=c.ok; fReb.textContent=c.rebajar; fRev.textContent=c.revisar; fCero.textContent=c.cero; fOcultos.textContent=c.oculto; }
 function filtered(){ const q=els.searchInput.value.toLowerCase().trim(); return materiales.filter(m=>{ if(filtro!=='todos' && estado(m)!==filtro) return false; if(q && !m.search.includes(q)) return false; return true; }); }
 function render(){ updateCounts(); document.querySelectorAll('[data-filter]').forEach(b=>b.classList.toggle('active', b.dataset.filter===filtro)); const list=filtered(); els.listInfo.textContent=`${list.length} materiales encontrados${list.length>300?' · mostrando primeros 300':''}`; els.cards.innerHTML=list.slice(0,300).map(cardHtml).join('') || '<div class="empty">Sin materiales para mostrar.</div>'; }
-function cardHtml(m){ const e=estado(m), r=avance[m.codigo]||{}; return `<article class="material-card" onclick="abrir('${m.codigo}')"><h3>${m.codigo} · SAP ${m.sap} ${m.um||''}</h3><p>${m.desc}</p><div class="meta">Última revisión: ${r.fecha||r.fechaOculto||'sin registro'} · Archivo: ${sapFileName||'sin archivo'}</div><span class="badge ${e}">${estadoLabel(e)}</span></article>`; }
+function cardHtml(m){
+  const e=estado(m), r=avance[m.codigo]||{};
+  const tieneReal = r.real !== undefined && r.real !== '';
+  const real = tieneReal ? Number(r.real) : null;
+  const dif = tieneReal ? (real - m.sap) : null;
+  const rebajar = (e==='rebajar' && tieneReal) ? (m.sap - real) : null;
+
+  let detalleStock = '';
+  if(tieneReal){
+    detalleStock = `<br><strong>SAP: ${m.sap} ${m.um||''} · Real: ${real} ${m.um||''}</strong>`;
+    if(e==='rebajar'){
+      detalleStock += `<br><strong style="color:#c62828;">🔻 Rebajar en SAP: ${rebajar} ${m.um||''}</strong>`;
+    }else if(e==='revisar'){
+      detalleStock += `<br><strong style="color:#b54708;">⚠️ Revisar diferencia: +${dif} ${m.um||''}</strong>`;
+    }else if(e==='ok'){
+      detalleStock += `<br><strong style="color:#067647;">✅ Diferencia: 0 ${m.um||''}</strong>`;
+    }else if(e==='cero'){
+      detalleStock += `<br><strong style="color:#026aa2;">🔵 SAP 0 con stock real: ${real} ${m.um||''}</strong>`;
+    }
+  }
+
+  return `<article class="material-card" onclick="abrir('${m.codigo}')">
+    <h3>${m.codigo} · SAP ${m.sap} ${m.um||''}</h3>
+    <p>${m.desc}</p>
+    <div class="meta">Última revisión: ${r.fecha||r.fechaOculto||'sin registro'} · Archivo: ${sapFileName||'sin archivo'}${detalleStock}</div>
+    <span class="badge ${e}">${estadoLabel(e)}</span>
+  </article>`;
+}
 function abrir(codigo){ current=materiales.find(m=>m.codigo===codigo); if(!current) return; const r=rec(codigo); els.dCode.textContent=current.codigo; els.dDesc.textContent=current.desc; els.dSap.textContent=`${current.sap} ${current.um||''}`; els.realInput.value=r.real ?? ''; els.dMeta.textContent=`Última revisión: ${r.fecha||r.fechaOculto||'sin registro'} · Archivo: ${sapFileName||'sin archivo'}`; els.unhideBtn.style.display=r.oculto?'block':'none'; updateDrawerState(); els.drawer.classList.remove('hidden'); setTimeout(()=>els.realInput.focus(),100); }
 function updateDrawerState(){ if(!current) return; let old=avance[current.codigo]; if(els.realInput.value!==''){ avance[current.codigo]={...old,real:Number(els.realInput.value)}; } const e=estado(current); avance[current.codigo]=old; els.dEstado.className='state-badge '+e; els.dEstado.textContent=estadoLabel(e); }
 function closeDrawer(){ els.drawer.classList.add('hidden'); current=null; }
