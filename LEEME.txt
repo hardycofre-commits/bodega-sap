@@ -1,0 +1,3 @@
+Reemplaza SOLO index.html.
+Cambio único: el botón Continuar queda oculto visualmente, pero el id continueBtn se mantiene para que app.js no falle.
+No se modificó app.js ni styles.css.

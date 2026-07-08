@@ -37,9 +37,9 @@
     </section>
 
     <section class="panel work-panel">
-      <div class="search-row">
+      <div class="search-row" style="grid-template-columns:1fr;">
         <div class="search-wrap"><span>🔎</span><input id="searchInput" type="search" placeholder="Buscar código SAP o descripción..." autocomplete="off" /></div>
-        <button class="primary" id="continueBtn">Continuar →</button>
+        <button class="primary" id="continueBtn" type="button" style="display:none;">Continuar →</button>
       </div>
       <div class="filter-row" id="filterRow">
         <button class="filter-chip active" data-filter="todos">📋 Todos <b id="fTodos">0</b></button>
