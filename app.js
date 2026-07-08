@@ -4,6 +4,7 @@ const REPO = 'bodega-sap';
 const DATOS_PATH = 'datos';
 const SHEETS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxlntU4x4bOg4CQWIL80T0-gmrIKulE65hvqs9D0npSfGPmGCfVYcAMUyv8hKNsfOPMTg/exec';
 const STORAGE_KEY = 'bodegaSapInventario_v5';
+const SAP_CACHE_KEY = 'bodegaSapUltimoSap_v5_1';
 
 let materiales = [];
 let sheetStore = {};
@@ -30,6 +31,32 @@ function pick(row,names){
 function rec(code){ sheetStore[code] = sheetStore[code] || {}; return sheetStore[code]; }
 function saveLocal(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(sheetStore)); }
 function loadLocal(){ try{ sheetStore = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}; }catch{ sheetStore = {}; } }
+
+function saveSapCache(meta={}){
+  try{
+    if(!materiales.length) return;
+    const payload = {
+      version:'5.1',
+      archivo: ultimoArchivo || meta.archivo || 'archivo_sap',
+      fechaCarga: meta.fechaCarga || new Date().toISOString(),
+      total: materiales.length,
+      materiales
+    };
+    localStorage.setItem(SAP_CACHE_KEY, JSON.stringify(payload));
+  }catch(e){ console.warn('No se pudo guardar último SAP local', e); }
+}
+function loadSapCache(){
+  try{
+    const payload = JSON.parse(localStorage.getItem(SAP_CACHE_KEY) || 'null');
+    if(!payload || !Array.isArray(payload.materiales) || !payload.materiales.length) return false;
+    materiales = payload.materiales.map(m => ({...m, search: (String(m.codigo||'') + ' ' + String(m.desc||'')).toLowerCase()}));
+    ultimoArchivo = payload.archivo || 'SAP guardado localmente';
+    const fecha = payload.fechaCarga ? new Date(payload.fechaCarga).toLocaleString('es-CL') : 'sin fecha';
+    setInfo('sapInfo', `Último SAP guardado: ${ultimoArchivo} · ${materiales.length} materiales · ${fecha}`, 'ok');
+    renderAll();
+    return true;
+  }catch(e){ console.warn('No se pudo cargar último SAP local', e); return false; }
+}
 
 function setInfo(id, text, type='loading'){
   const el = $(id);
@@ -67,7 +94,7 @@ async function cargarUltimoExcelGithub(){
     await cargarExcelUrl(file.download_url + '?t=' + Date.now());
     setInfo('sapInfo','Último SAP cargado: ' + file.name, 'ok');
   }catch(e){
-    setInfo('sapInfo','Sin Excel automático. Usa carga manual o sube un Excel a datos.', 'warn');
+    if(materiales.length){ setInfo('sapInfo','Sin Excel automático. Manteniendo último SAP guardado localmente.', 'warn'); } else { setInfo('sapInfo','Sin Excel automático. Usa carga manual o sube un Excel a datos.', 'warn'); }
   }
 }
 async function cargarExcelUrl(url){
@@ -85,6 +112,7 @@ function procesarWorkbook(wb){
     const almacen = norm(pick(r,['Almacén','Almacen','Centro']));
     return {codigo, desc, sap, um, almacen, search:(codigo + ' ' + desc).toLowerCase()};
   }).filter(x => x.codigo && x.desc);
+  saveSapCache();
   renderAll();
 }
 
@@ -282,6 +310,7 @@ function bindEvents(){
 async function init(){
   bindEvents();
   loadLocal();
+  loadSapCache();
   renderAll();
   await Promise.all([cargarSheetsJSONP(), cargarUltimoExcelGithub()]);
   renderAll();
