@@ -1,7 +1,0 @@
-CIERRE V5.5
-Reemplaza SOLO estos dos archivos en GitHub:
-1) index.html  -> incluye el logo Invermar embebido.
-2) app.js      -> apunta SOLO al repositorio hardycofre-commits/bodega-sap, carpeta datos, rama main.
-
-No usa inventario-bodega-sap.
-No cambia estilos ni estructura visual.
