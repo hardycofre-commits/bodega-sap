@@ -3,38 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bodega SAP</title>
+  <title>Bodega SAP v4.2</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-<header class="hero">
-  <div class="wrap hero-inner">
+<header class="topbar">
+  <div class="wrap header-inner">
     <div>
+      <img src="assets/logo.png" alt="Invermar" class="logo" />
       <h1>Bodega SAP</h1>
       <p>Inventario físico vs stock SAP · Piscicultura Lago Verde</p>
     </div>
-    <div class="version">v4.1</div>
   </div>
 </header>
 
 <main class="wrap">
-  <section class="panel top-panel">
+  <section class="panel status-panel">
     <div class="statusbar">
-      <div class="pill" id="sapInfo">Buscando último Excel SAP...</div>
-      <div class="pill" id="saveInfo">🟠 Conectando con Google Sheets...</div>
+      <div class="pill" id="sapInfo">Buscando último Excel en GitHub...</div>
+      <div class="pill" id="saveInfo">Conectando con Google Sheets...</div>
     </div>
   </section>
 
-  <section class="panel file" id="manualBox">
-    <div>
-      <b>Carga manual de Excel SAP</b>
-      <p class="small">Úsalo solo si GitHub demora en actualizar o si aún no existe la carpeta <b>datos</b>.</p>
-    </div>
-    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
-  </section>
-
-  <section class="grid" id="kpis">
+  <section class="kpi-grid" id="kpis">
     <div class="kpi"><b id="kTotal">0</b><span>Total SAP</span></div>
     <div class="kpi"><b id="kPend">0</b><span>Pendientes</span></div>
     <div class="kpi"><b id="kOk">0</b><span>Correctos</span></div>
@@ -43,38 +35,49 @@
     <div class="kpi"><b id="kCero">0</b><span>SAP 0 con stock</span></div>
   </section>
 
-  <section class="panel" id="homePanel">
+  <section class="panel search-panel" id="homePanel">
     <div class="searchbox">
-      <input id="searchInput" type="search" placeholder="Buscar por código SAP o descripción..." autocomplete="off" />
-      <button class="btn btn-blue" onclick="continuarPendiente()">Continuar</button>
+      <input id="searchInput" type="search" placeholder="Buscar código SAP o descripción..." autocomplete="off" />
+      <button class="btn btn-blue" id="continueBtn">Continuar</button>
+    </div>
+    <div class="quick-actions">
+      <button class="chip active" data-filter="pendiente">Pendientes</button>
+      <button class="chip" data-filter="rebajar">Rebajar SAP</button>
+      <button class="chip" data-filter="revisar">Revisar</button>
+      <button class="chip" data-filter="cero">SAP 0</button>
+      <button class="chip" data-filter="oculto">Ocultos</button>
     </div>
     <div class="results" id="results"></div>
   </section>
 
-  <section class="panel hidden" id="detailPanel">
-    <button class="btn btn-gray" onclick="volverBuscador()">← Volver al buscador</button>
-    <div class="detail-grid">
-      <div><div class="detail-title">Código SAP</div><div class="detail-value" id="dCode"></div></div>
-      <div><div class="detail-title">Stock SAP</div><div class="detail-value" id="dSap"></div></div>
+  <section class="panel detail-panel hidden" id="detailPanel">
+    <button class="btn btn-gray" id="backBtn">← Volver</button>
+    <div class="detail-card">
+      <div class="detail-title">Código SAP</div>
+      <div class="detail-code" id="dCode"></div>
+      <div class="detail-title">Descripción</div>
+      <div class="detail-desc" id="dDesc"></div>
+      <div class="detail-row">
+        <div>
+          <div class="detail-title">Stock SAP</div>
+          <div class="detail-stock" id="dSap"></div>
+        </div>
+        <div>
+          <div class="detail-title">Estado</div>
+          <div class="state pendiente" id="dEstado">Pendiente</div>
+        </div>
+      </div>
+      <button class="btn btn-light btn-full" id="sameSapBtn">☑ Igual que SAP</button>
+      <label class="detail-title" for="realInput">Stock real</label>
+      <input class="stock-input" id="realInput" type="number" step="0.01" inputmode="decimal" placeholder="0" />
+      <div class="small" id="dFecha">Última revisión: sin registro</div>
+      <button class="btn btn-green btn-full" id="saveBtn">💾 Guardar</button>
+      <button class="btn btn-red btn-full" id="hideBtn">🚫 Ocultar</button>
     </div>
-    <div class="detail-title">Descripción</div><div class="detail-value desc-big" id="dDesc"></div>
-    <button class="btn btn-gray btn-full" onclick="igualSap()">☑ Igual que SAP</button>
-    <div class="detail-title mt">Stock real</div>
-    <input class="stock-input" id="realInput" type="number" step="0.01" inputmode="decimal" placeholder="0" />
-    <div class="state pendiente" id="dEstado">Pendiente</div>
-    <div class="small" id="dFecha">Última revisión: sin registro</div>
-    <button class="btn btn-green btn-full" onclick="guardarRevision()">💾 Guardar</button>
-    <button class="btn btn-red btn-full" onclick="ocultarMaterial()">🚫 Ocultar</button>
   </section>
 
-  <section class="panel">
-    <div class="tabs">
-      <button class="tab active" onclick="setFiltro('rebajar',this)">🔴 Rebajar SAP</button>
-      <button class="tab" onclick="setFiltro('revisar',this)">🟡 Revisar</button>
-      <button class="tab" onclick="setFiltro('cero',this)">🔵 SAP 0</button>
-      <button class="tab" onclick="setFiltro('pendiente',this)">⚪ Pendientes</button>
-      <button class="tab" onclick="setFiltro('oculto',this)">🚫 Ocultos</button>
-    </div>
+  <section class="panel list-panel">
+    <div class="section-title">Resumen por estado</div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Código</th><th>Descripción</th><th>SAP</th><th>Real</th><th>Dif.</th><th>Fecha</th></tr></thead>
@@ -82,7 +85,16 @@
       </table>
     </div>
   </section>
+
+  <section class="panel manual-panel" id="manualBox">
+    <details>
+      <summary>Carga manual de Excel SAP</summary>
+      <p class="small">Úsalo solo si GitHub demora en actualizar o si aún no existe la carpeta datos.</p>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
+    </details>
+  </section>
 </main>
+
 <script src="app.js"></script>
 </body>
 </html>
