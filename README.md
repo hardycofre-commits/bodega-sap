@@ -1,17 +1,33 @@
-# Bodega SAP v4.3
+# Bodega SAP v5.0
 
-Cambios:
-- Logo Invermar embebido directamente en el HTML para evitar imagen rota.
-- Eliminado el bloque “Resumen por estado”.
-- La pantalla principal queda solo con KPIs, buscador, filtros y tarjetas de materiales.
-- Mantiene consulta del último Excel en `datos/`.
-- Mantiene sincronización con Google Sheets mediante Apps Script.
+Versión móvil/profesional del inventario Bodega SAP.
 
-Archivos principales:
+## Archivos
 - `index.html`
 - `styles.css`
 - `app.js`
 - `apps_script.gs`
-- `datos/`
+- `assets/logo.png`
 
-Para publicar en GitHub, reemplazar estos archivos y hacer commit.
+## Qué hace
+- Busca automáticamente el último Excel dentro de la carpeta `datos` del repositorio `bodega-sap`.
+- Lee Google Sheets al iniciar.
+- Guarda revisiones y ocultos en Google Sheets.
+- Recalcula estados con cada nuevo Excel SAP.
+- Si SAP se actualiza y coincide con el stock real, el estado pasa automáticamente a Correcto.
+- Mantiene historial en la hoja `Historial`.
+
+## Google Sheets
+Pegar `apps_script.gs` en Extensiones → Apps Script. Luego implementar como Web App:
+- Ejecutar como: Yo
+- Acceso: Cualquier persona
+- Crear nueva versión al actualizar.
+
+## GitHub
+Subir estos archivos al repositorio y mantener los Excel SAP dentro de:
+
+```text
+datos/
+```
+
+El sistema no necesita borrar archivos antiguos; toma el más nuevo por fecha en el nombre.
