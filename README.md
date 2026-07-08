@@ -1,22 +1,41 @@
-# Bodega SAP v5.1
+# Bodega SAP v5.2
 
-Cambios principales:
+Versión simplificada:
 
-- Recuerda el último Excel SAP cargado manualmente.
-- Al cerrar y volver a abrir el link, carga automáticamente el último inventario guardado en el navegador.
-- Sigue intentando buscar el último Excel en GitHub dentro de `datos/`.
-- Sigue leyendo y guardando avances en Google Sheets.
-- Si GitHub no responde, mantiene el último SAP local.
+- No usa carga manual.
+- Busca automáticamente el último Excel dentro de la carpeta `datos` del repositorio GitHub.
+- Lee y guarda avances en Google Sheets mediante Apps Script.
+- Mantiene materiales ocultos, stock real y fechas aunque se cambie el Excel SAP.
 
-## Uso
+## Estructura esperada en GitHub
 
-1. Sube `index.html`, `styles.css`, `app.js` y `apps_script.gs` a GitHub.
-2. Mantén Google Sheets con el Apps Script actualizado.
-3. Abre la aplicación.
-4. Si deseas trabajar rápido, usa **Carga manual de Excel SAP**.
-5. La próxima vez que abras el link, el sistema recordará ese último archivo.
+```text
+bodega-sap/
+├─ index.html
+├─ styles.css
+├─ app.js
+├─ logo.png
+├─ README.md
+└─ datos/
+   └─ EXPORT-2026-07-07T232521.251.xlsx
+```
 
-## Importante
+Puedes dejar varios Excel dentro de `datos`. La app toma el más reciente según la fecha del nombre.
 
-El Excel manual queda guardado en el navegador donde fue cargado.
-Las revisiones y ocultos quedan sincronizados con Google Sheets.
+## Apps Script
+
+Copia el contenido de `apps_script.gs` en Google Sheets → Extensiones → Apps Script.
+Luego implementa una nueva versión como Web App:
+
+- Ejecutar como: Yo
+- Acceso: Cualquier persona
+
+## Configuración principal
+
+En `app.js`:
+
+```js
+const OWNER = 'hardycofre-commits';
+const REPO = 'bodega-sap';
+const DATOS_PATH = 'datos';
+```
