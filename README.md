@@ -1,54 +1,29 @@
-# Bodega SAP - Documentación del proyecto
+# Bodega SAP v4.0 - estructura separada
 
-## Objetivo
-Aplicación web para comparar inventario físico vs stock SAP en Piscicultura Lago Verde.
+Archivos:
 
-La aplicación debe:
-- Cargar el último archivo SAP desde GitHub.
-- Guardar avance en Google Sheets.
-- Sincronizar computador y celular.
-- Permitir revisar, ocultar y registrar stock real por código SAP.
+- `index.html`: estructura de la aplicación.
+- `styles.css`: diseño visual.
+- `app.js`: lógica de carga Excel, filtros, guardado y sincronización con Google Sheets.
 
-## Estado actual
-La sincronización con Google Sheets está conectada, pero la aplicación puede no mostrar materiales si no encuentra el Excel SAP en GitHub.
-
-En el archivo `index.html` actual existe esta configuración:
-
-```js
-const OWNER='hardycofre-commits';
-const REPO='bodega-sap';
-const DATOS_PATH='datos';
-```
-
-Si el repositorio real es `inventario-bodega-sap`, entonces debe quedar:
+Configuración importante en `app.js`:
 
 ```js
 const OWNER='hardycofre-commits';
 const REPO='inventario-bodega-sap';
 const DATOS_PATH='datos';
+const SHEETS_WEBAPP_URL='https://script.google.com/macros/s/AKfycbxlntU4x4bOg4CQWIL80T0-gmrIKulE65hvqs9D0npSfGPmGCfVYcAMUyv8hKNsfOPMTg/exec';
 ```
 
-Además, dentro del repositorio debe existir una carpeta llamada `datos` con el Excel SAP.
+Para publicar en GitHub:
 
-## URL Apps Script
+1. Sube estos archivos en la raíz del repositorio.
+2. Mantén los Excel dentro de la carpeta `datos`.
+3. Activa GitHub Pages desde la rama `main` y carpeta `/root`, o usa GitHub Actions.
 
-```text
-https://script.google.com/macros/s/AKfycbxlntU4x4bOg4CQWIL80T0-gmrIKulE65hvqs9D0npSfGPmGCfVYcAMUyv8hKNsfOPMTg/exec
-```
+Prueba inicial:
 
-## Flujo esperado
-
-1. GitHub contiene el archivo SAP en `/datos`.
-2. La aplicación abre el último Excel disponible.
-3. Google Sheets guarda el avance: stock real, oculto y fecha.
-4. Computador y celular leen la misma información.
-
-## Próximo paso recomendado
-
-Corregir el nombre del repositorio en `index.html`:
-
-```js
-const REPO='inventario-bodega-sap';
-```
-
-Luego subir nuevamente el archivo a GitHub y probar.
+1. Abre la web.
+2. Confirma que cargue el último Excel desde `datos`.
+3. Oculta un material.
+4. Revisa que aparezca en Google Sheets.
