@@ -1,29 +1,20 @@
-# Bodega SAP v4.0 - estructura separada
+# Bodega SAP v4.1
 
-Archivos:
+Estructura:
 
-- `index.html`: estructura de la aplicación.
+- `index.html`: estructura de la app.
 - `styles.css`: diseño visual.
-- `app.js`: lógica de carga Excel, filtros, guardado y sincronización con Google Sheets.
+- `app.js`: lógica de Excel, GitHub y Google Sheets.
+- `apps_script.gs`: código que debe ir en Google Apps Script.
 
-Configuración importante en `app.js`:
+## Importante
 
-```js
-const OWNER='hardycofre-commits';
-const REPO='inventario-bodega-sap';
-const DATOS_PATH='datos';
-const SHEETS_WEBAPP_URL='https://script.google.com/macros/s/AKfycbxlntU4x4bOg4CQWIL80T0-gmrIKulE65hvqs9D0npSfGPmGCfVYcAMUyv8hKNsfOPMTg/exec';
-```
+Para que Google Sheets sincronice bien, reemplaza el código del Apps Script por `apps_script.gs`, guarda y publica una nueva versión de la implementación.
 
-Para publicar en GitHub:
+## Excel SAP
 
-1. Sube estos archivos en la raíz del repositorio.
-2. Mantén los Excel dentro de la carpeta `datos`.
-3. Activa GitHub Pages desde la rama `main` y carpeta `/root`, o usa GitHub Actions.
+El sistema busca el último archivo Excel en:
 
-Prueba inicial:
+`hardycofre-commits / inventario-bodega-sap / datos`
 
-1. Abre la web.
-2. Confirma que cargue el último Excel desde `datos`.
-3. Oculta un material.
-4. Revisa que aparezca en Google Sheets.
+Si no lo encuentra, usa la carga manual.
