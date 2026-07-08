@@ -1,2 +1,3 @@
-Reemplaza en GitHub el archivo index.html y agrega la carpeta assets/logo.png.
-No se modificó la lógica del sistema. Solo se dejó el logo en la ruta correcta.
+Reemplaza SOLO index.html en GitHub.
+El logo quedó embebido dentro del HTML, por lo tanto NO depende de assets/logo.png.
+No se modificó app.js ni la lógica del sistema.
