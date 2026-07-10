@@ -149,7 +149,7 @@ function procesarWorkbook(wb){
     const sap=num(pick(r,['Libre utilización','Libre utilizacion','Stock libre utilización','Stock','Cantidad','stock_sap']));
     const um=norm(pick(r,['Unidad medida base','UMB','Unidad','UM']));
     return {codigo, desc, sap, um, search:(codigo+' '+desc).toLowerCase()};
-  }).filter(x=>x.codigo && x.desc);
+  }).filter(x=>x.codigo && x.desc && !x.desc.toUpperCase().includes('(NULO)'));
 }
 
 async function cargarGoogleSheets(){
@@ -222,7 +222,7 @@ function cardHtml(m){
 
   const detalleCompra=compra
     ? `<br><strong style="color:#344054;">🛒 Última OC: ${compra.oc} · 📅 Fecha documento: ${compra.fecha||'sin fecha'}</strong>`
-    : '';
+    : `<br><strong style="color:#667085;">🛒 Sin OC registrada · 📅 Sin fecha de documento</strong>`;
 
   return `<article class="material-card" onclick="abrir('${m.codigo}')">
     <h3>${m.codigo} · SAP ${m.sap} ${m.um||''}</h3>

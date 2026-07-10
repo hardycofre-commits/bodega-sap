@@ -1,9 +1,9 @@
 Reemplaza SOLO app.js en GitHub.
 
-Cambio único incorporado:
-- Lee el último Excel de la carpeta compras/.
-- Une la información mediante el código Material.
-- Si existen varias compras del mismo material, usa la de fecha más reciente.
-- Muestra Última OC y Fecha documento en la tarjeta y en el detalle.
+Cambios aplicados:
+1. Se eliminan automáticamente todos los materiales cuya descripción contiene (NULO).
+2. Todas las tarjetas muestran una línea de OC y fecha.
+   - Si existe compra: muestra Última OC y Fecha documento.
+   - Si no existe: muestra Sin OC registrada y Sin fecha de documento.
 
-No modifica index.html ni styles.css.
+No se modificó index.html ni styles.css.
