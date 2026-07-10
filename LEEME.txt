@@ -1,3 +1,9 @@
-Reemplaza SOLO index.html.
-Cambio único: el botón Continuar queda oculto visualmente, pero el id continueBtn se mantiene para que app.js no falle.
-No se modificó app.js ni styles.css.
+Reemplaza SOLO app.js en GitHub.
+
+Cambio único incorporado:
+- Lee el último Excel de la carpeta compras/.
+- Une la información mediante el código Material.
+- Si existen varias compras del mismo material, usa la de fecha más reciente.
+- Muestra Última OC y Fecha documento en la tarjeta y en el detalle.
+
+No modifica index.html ni styles.css.

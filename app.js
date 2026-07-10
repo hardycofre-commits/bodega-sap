@@ -2,6 +2,7 @@ const CONFIG = {
   OWNER: 'hardycofre-commits',
   REPO: 'bodega-sap',
   DATOS_PATH: 'datos',
+  COMPRAS_PATH: 'compras',
   SHEETS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbxlntU4x4bOg4CQWIL80T0-gmrIKulE65hvqs9D0npSfGPmGCfVYcAMUyv8hKNsfOPMTg/exec',
   LOCAL_KEY: 'bodegaSap_v55_cache'
 };
@@ -11,6 +12,8 @@ let avance = {};
 let filtro = 'todos';
 let current = null;
 let sapFileName = '';
+let comprasFileName = '';
+let comprasPorMaterial = {};
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -48,6 +51,93 @@ async function cargarUltimoExcelGithub(){
   const ab=await (await fetch(f.download_url+'?t='+Date.now(),{cache:'no-store'})).arrayBuffer();
   procesarWorkbook(XLSX.read(ab,{type:'array'}));
   setStatus(els.sapStatus,`✅ Último SAP cargado: ${f.name}`,'ok');
+}
+
+
+function fechaCompraInfo(valor){
+  if(valor === undefined || valor === null || valor === '') return {texto:'', tiempo:0};
+
+  if(typeof valor === 'number'){
+    const d = XLSX.SSF.parse_date_code(valor);
+    if(d){
+      const fecha = new Date(d.y, d.m - 1, d.d);
+      return {
+        texto: fecha.toLocaleDateString('es-CL'),
+        tiempo: fecha.getTime()
+      };
+    }
+  }
+
+  const textoOriginal = String(valor).trim();
+  const fecha = new Date(textoOriginal);
+  if(!Number.isNaN(fecha.getTime())){
+    return {
+      texto: fecha.toLocaleDateString('es-CL'),
+      tiempo: fecha.getTime()
+    };
+  }
+
+  return {texto:textoOriginal, tiempo:0};
+}
+
+async function cargarUltimoExcelComprasGithub(){
+  const api=`https://api.github.com/repos/${CONFIG.OWNER}/${CONFIG.REPO}/contents/${CONFIG.COMPRAS_PATH}?ref=main&t=${Date.now()}`;
+  const r=await fetch(api,{cache:'no-store'});
+  if(!r.ok) throw new Error('No se pudo leer compras/');
+
+  const files=await r.json();
+  const excels=files
+    .filter(f=>f.type==='file' && /\.(xlsx|xls|csv)$/i.test(f.name))
+    .sort((a,b)=>{
+      const da=fileDate(a.name), db=fileDate(b.name);
+      if(da!==db) return db-da;
+      return b.name.localeCompare(a.name);
+    });
+
+  if(!excels.length) throw new Error('No hay Excel en compras/');
+
+  const f=excels[0];
+  comprasFileName=f.name;
+
+  const respuesta=await fetch(f.download_url+'?t='+Date.now(),{cache:'no-store'});
+  if(!respuesta.ok) throw new Error('No se pudo descargar el archivo de compras');
+
+  const ab=await respuesta.arrayBuffer();
+  procesarComprasWorkbook(XLSX.read(ab,{type:'array'}));
+}
+
+function procesarComprasWorkbook(wb){
+  const sheet=wb.Sheets[wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(sheet,{defval:''});
+  const mapa={};
+
+  rows.forEach(r=>{
+    const codigo=norm(pick(r,['Material','Código','Codigo','Cod.Material','N° material','codigo_sap']));
+    const oc=norm(pick(r,['Documento compras','Documento de compras','Orden de compra','OC']));
+    const fechaValor=pick(r,['Fecha documento','Fecha del documento','Fecha OC']);
+    const fecha=fechaCompraInfo(fechaValor);
+
+    if(!codigo || !oc) return;
+
+    const actual=mapa[codigo];
+    const esMasReciente=!actual
+      || fecha.tiempo>actual.tiempo
+      || (fecha.tiempo===actual.tiempo && String(oc).localeCompare(String(actual.oc))>0);
+
+    if(esMasReciente){
+      mapa[codigo]={
+        oc,
+        fecha:fecha.texto,
+        tiempo:fecha.tiempo
+      };
+    }
+  });
+
+  comprasPorMaterial=mapa;
+}
+
+function compraDe(codigo){
+  return comprasPorMaterial[codigo] || null;
 }
 
 function procesarWorkbook(wb){
@@ -110,6 +200,7 @@ function filtered(){ const q=els.searchInput.value.toLowerCase().trim(); return 
 function render(){ updateCounts(); document.querySelectorAll('[data-filter]').forEach(b=>b.classList.toggle('active', b.dataset.filter===filtro)); const list=filtered(); els.listInfo.textContent=`${list.length} materiales encontrados${list.length>300?' · mostrando primeros 300':''}`; els.cards.innerHTML=list.slice(0,300).map(cardHtml).join('') || '<div class="empty">Sin materiales para mostrar.</div>'; }
 function cardHtml(m){
   const e=estado(m), r=avance[m.codigo]||{};
+  const compra=compraDe(m.codigo);
   const tieneReal = r.real !== undefined && r.real !== '';
   const real = tieneReal ? Number(r.real) : null;
   const dif = tieneReal ? (real - m.sap) : null;
@@ -129,14 +220,19 @@ function cardHtml(m){
     }
   }
 
+  const detalleCompra=compra
+    ? `<br><strong style="color:#344054;">🛒 Última OC: ${compra.oc} · 📅 Fecha documento: ${compra.fecha||'sin fecha'}</strong>`
+    : '';
+
   return `<article class="material-card" onclick="abrir('${m.codigo}')">
     <h3>${m.codigo} · SAP ${m.sap} ${m.um||''}</h3>
     <p>${m.desc}</p>
-    <div class="meta">Última revisión: ${r.fecha||r.fechaOculto||'sin registro'} · Archivo: ${sapFileName||'sin archivo'}${detalleStock}</div>
+    <div class="meta">Última revisión: ${r.fecha||r.fechaOculto||'sin registro'} · Archivo: ${sapFileName||'sin archivo'}${detalleCompra}${detalleStock}</div>
     <span class="badge ${e}">${estadoLabel(e)}</span>
   </article>`;
 }
-function abrir(codigo){ current=materiales.find(m=>m.codigo===codigo); if(!current) return; const r=rec(codigo); els.dCode.textContent=current.codigo; els.dDesc.textContent=current.desc; els.dSap.textContent=`${current.sap} ${current.um||''}`; els.realInput.value=r.real ?? ''; els.dMeta.textContent=`Última revisión: ${r.fecha||r.fechaOculto||'sin registro'} · Archivo: ${sapFileName||'sin archivo'}`; els.unhideBtn.style.display=r.oculto?'block':'none'; updateDrawerState(); els.drawer.classList.remove('hidden'); setTimeout(()=>els.realInput.focus(),100); }
+function abrir(codigo){ current=materiales.find(m=>m.codigo===codigo); if(!current) return; const r=rec(codigo); els.dCode.textContent=current.codigo; els.dDesc.textContent=current.desc; els.dSap.textContent=`${current.sap} ${current.um||''}`; els.realInput.value=r.real ?? ''; const compra=compraDe(current.codigo);
+  els.dMeta.textContent=`Última revisión: ${r.fecha||r.fechaOculto||'sin registro'} · Archivo: ${sapFileName||'sin archivo'}${compra ? ` · Última OC: ${compra.oc} · Fecha documento: ${compra.fecha||'sin fecha'}` : ''}`; els.unhideBtn.style.display=r.oculto?'block':'none'; updateDrawerState(); els.drawer.classList.remove('hidden'); setTimeout(()=>els.realInput.focus(),100); }
 function updateDrawerState(){ if(!current) return; let old=avance[current.codigo]; if(els.realInput.value!==''){ avance[current.codigo]={...old,real:Number(els.realInput.value)}; } const e=estado(current); avance[current.codigo]=old; els.dEstado.className='state-badge '+e; els.dEstado.textContent=estadoLabel(e); }
 function closeDrawer(){ els.drawer.classList.add('hidden'); current=null; }
 async function saveCurrent(){ if(!current) return; if(els.realInput.value===''){ toast('Ingresa stock real o usa Igual que SAP'); return; } avance[current.codigo]={...rec(current.codigo), real:Number(els.realInput.value), oculto:false, fecha:today()}; saveCache(); render(); await guardarSheets(current.codigo); toast('Guardado'); closeDrawer(); }
@@ -148,6 +244,7 @@ function continuar(){ const m=materiales.find(x=>estado(x)==='pendiente'); if(m)
 async function init(){
   loadCache();
   try{ await cargarUltimoExcelGithub(); }catch(e){ setStatus(els.sapStatus,'❌ No se pudo leer la carpeta datos del repositorio','error'); }
+  try{ await cargarUltimoExcelComprasGithub(); }catch(e){ console.warn('No se pudo cargar compras:',e); }
   await cargarGoogleSheets();
   render();
 }
