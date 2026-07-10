@@ -61,20 +61,14 @@ function fechaCompraInfo(valor){
     const d = XLSX.SSF.parse_date_code(valor);
     if(d){
       const fecha = new Date(d.y, d.m - 1, d.d);
-      return {
-        texto: fecha.toLocaleDateString('es-CL'),
-        tiempo: fecha.getTime()
-      };
+      return {texto: fecha.toLocaleDateString('es-CL'), tiempo: fecha.getTime()};
     }
   }
 
   const textoOriginal = String(valor).trim();
   const fecha = new Date(textoOriginal);
   if(!Number.isNaN(fecha.getTime())){
-    return {
-      texto: fecha.toLocaleDateString('es-CL'),
-      tiempo: fecha.getTime()
-    };
+    return {texto: fecha.toLocaleDateString('es-CL'), tiempo: fecha.getTime()};
   }
 
   return {texto:textoOriginal, tiempo:0};
@@ -125,11 +119,7 @@ function procesarComprasWorkbook(wb){
       || (fecha.tiempo===actual.tiempo && String(oc).localeCompare(String(actual.oc))>0);
 
     if(esMasReciente){
-      mapa[codigo]={
-        oc,
-        fecha:fecha.texto,
-        tiempo:fecha.tiempo
-      };
+      mapa[codigo]={oc, fecha:fecha.texto, tiempo:fecha.tiempo};
     }
   });
 
@@ -149,7 +139,7 @@ function procesarWorkbook(wb){
     const sap=num(pick(r,['Libre utilización','Libre utilizacion','Stock libre utilización','Stock','Cantidad','stock_sap']));
     const um=norm(pick(r,['Unidad medida base','UMB','Unidad','UM']));
     return {codigo, desc, sap, um, search:(codigo+' '+desc).toLowerCase()};
-  }).filter(x=>x.codigo && x.desc && !x.desc.toUpperCase().includes('(NULO)'));
+  }).filter(x=>x.codigo && x.desc && !/(^|\s|\()NULO(\)|\s|$)/i.test(x.desc));
 }
 
 async function cargarGoogleSheets(){
@@ -220,9 +210,9 @@ function cardHtml(m){
     }
   }
 
-  const detalleCompra=compra
+  const detalleCompra = compra
     ? `<br><strong style="color:#344054;">🛒 Última OC: ${compra.oc} · 📅 Fecha documento: ${compra.fecha||'sin fecha'}</strong>`
-    : `<br><strong style="color:#667085;">🛒 Sin OC registrada · 📅 Sin fecha de documento</strong>`;
+    : `<br><span style="color:#98a2b3;">🛒 Sin OC registrada</span>`;
 
   return `<article class="material-card" onclick="abrir('${m.codigo}')">
     <h3>${m.codigo} · SAP ${m.sap} ${m.um||''}</h3>
@@ -232,7 +222,7 @@ function cardHtml(m){
   </article>`;
 }
 function abrir(codigo){ current=materiales.find(m=>m.codigo===codigo); if(!current) return; const r=rec(codigo); els.dCode.textContent=current.codigo; els.dDesc.textContent=current.desc; els.dSap.textContent=`${current.sap} ${current.um||''}`; els.realInput.value=r.real ?? ''; const compra=compraDe(current.codigo);
-  els.dMeta.textContent=`Última revisión: ${r.fecha||r.fechaOculto||'sin registro'} · Archivo: ${sapFileName||'sin archivo'}${compra ? ` · Última OC: ${compra.oc} · Fecha documento: ${compra.fecha||'sin fecha'}` : ''}`; els.unhideBtn.style.display=r.oculto?'block':'none'; updateDrawerState(); els.drawer.classList.remove('hidden'); setTimeout(()=>els.realInput.focus(),100); }
+  els.dMeta.textContent=`Última revisión: ${r.fecha||r.fechaOculto||'sin registro'} · Archivo: ${sapFileName||'sin archivo'}${compra ? ` · Última OC: ${compra.oc} · Fecha documento: ${compra.fecha||'sin fecha'}` : ' · Sin OC registrada'}`; els.unhideBtn.style.display=r.oculto?'block':'none'; updateDrawerState(); els.drawer.classList.remove('hidden'); setTimeout(()=>els.realInput.focus(),100); }
 function updateDrawerState(){ if(!current) return; let old=avance[current.codigo]; if(els.realInput.value!==''){ avance[current.codigo]={...old,real:Number(els.realInput.value)}; } const e=estado(current); avance[current.codigo]=old; els.dEstado.className='state-badge '+e; els.dEstado.textContent=estadoLabel(e); }
 function closeDrawer(){ els.drawer.classList.add('hidden'); current=null; }
 async function saveCurrent(){ if(!current) return; if(els.realInput.value===''){ toast('Ingresa stock real o usa Igual que SAP'); return; } avance[current.codigo]={...rec(current.codigo), real:Number(els.realInput.value), oculto:false, fecha:today()}; saveCache(); render(); await guardarSheets(current.codigo); toast('Guardado'); closeDrawer(); }
