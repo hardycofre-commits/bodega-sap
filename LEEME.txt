@@ -1,9 +1,8 @@
-Reemplaza SOLO app.js en GitHub.
+Bodega SAP v5.6
 
-Cambios aplicados:
-1. Se eliminan automáticamente todos los materiales cuya descripción contiene (NULO).
-2. Todas las tarjetas muestran una línea de OC y fecha.
-   - Si existe compra: muestra Última OC y Fecha documento.
-   - Si no existe: muestra Sin OC registrada y Sin fecha de documento.
+Reemplaza SOLO app.js.
 
-No se modificó index.html ni styles.css.
+- Muestra el error real de GitHub.
+- Guarda el último inventario SAP en el navegador.
+- Si GitHub falla, usa automáticamente ese inventario guardado.
+- No modifica index.html ni styles.css.
