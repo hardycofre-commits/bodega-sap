@@ -1,8 +1,8 @@
-Bodega SAP v5.6
+Bodega SAP v5.7
 
-Reemplaza SOLO app.js.
+Reemplaza app.js y agrega:
+- datos/ultimo.json
+- compras/ultimo.json
 
-- Muestra el error real de GitHub.
-- Guarda el último inventario SAP en el navegador.
-- Si GitHub falla, usa automáticamente ese inventario guardado.
-- No modifica index.html ni styles.css.
+Google Sheets no cambia.
+Cada vez que subas un Excel nuevo, actualiza el nombre dentro del ultimo.json correspondiente.
