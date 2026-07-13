@@ -4,7 +4,8 @@ const CONFIG = {
   DATOS_PATH: 'datos',
   COMPRAS_PATH: 'compras',
   SHEETS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbxlntU4x4bOg4CQWIL80T0-gmrIKulE65hvqs9D0npSfGPmGCfVYcAMUyv8hKNsfOPMTg/exec',
-  LOCAL_KEY: 'bodegaSap_v55_cache'
+  LOCAL_KEY: 'bodegaSap_v55_cache',
+  SAP_CACHE_KEY: 'bodegaSap_v57_sap_cache'
 };
 
 let materiales = [];
@@ -31,6 +32,32 @@ function pick(row,names){ const keys=Object.keys(row); for(const n of names){ co
 function loadCache(){ try{ const c=JSON.parse(localStorage.getItem(CONFIG.LOCAL_KEY)||'{}'); avance=c.avance||{}; }catch{} }
 function saveCache(){ localStorage.setItem(CONFIG.LOCAL_KEY, JSON.stringify({avance, sapFileName, savedAt:new Date().toISOString()})); }
 
+function saveSapCache(){
+  try{
+    localStorage.setItem(CONFIG.SAP_CACHE_KEY, JSON.stringify({
+      materiales,
+      sapFileName,
+      savedAt:new Date().toISOString()
+    }));
+  }catch(e){
+    console.warn('No se pudo guardar caché SAP:', e);
+  }
+}
+
+function loadSapCache(){
+  try{
+    const c=JSON.parse(localStorage.getItem(CONFIG.SAP_CACHE_KEY)||'{}');
+    if(Array.isArray(c.materiales) && c.materiales.length){
+      materiales=c.materiales;
+      sapFileName=c.sapFileName||'último archivo guardado';
+      return true;
+    }
+  }catch(e){
+    console.warn('No se pudo leer caché SAP:', e);
+  }
+  return false;
+}
+
 function fileDate(name){
   const m=String(name).match(/(20\d{2})[-_]?([01]\d)[-_]?([0-3]\d)[T _-]?([0-2]\d)?([0-5]\d)?([0-5]\d)?/);
   if(!m) return 0;
@@ -48,6 +75,7 @@ async function cargarUltimoExcelGithub(){
   if(!archivo) throw new Error('datos/ultimo.json no indica un archivo');
 
   sapFileName=archivo;
+
   const fileResponse=await fetch(`datos/${encodeURIComponent(archivo)}?t=${Date.now()}`,{cache:'no-store'});
   if(!fileResponse.ok) throw new Error(`No se pudo descargar ${archivo} (HTTP ${fileResponse.status})`);
 
@@ -86,6 +114,7 @@ async function cargarUltimoExcelComprasGithub(){
   if(!archivo) throw new Error('compras/ultimo.json no indica un archivo');
 
   comprasFileName=archivo;
+
   const respuesta=await fetch(`compras/${encodeURIComponent(archivo)}?t=${Date.now()}`,{cache:'no-store'});
   if(!respuesta.ok) throw new Error(`No se pudo descargar ${archivo} (HTTP ${respuesta.status})`);
 
@@ -226,7 +255,19 @@ function continuar(){ const m=materiales.find(x=>estado(x)==='pendiente'); if(m)
 
 async function init(){
   loadCache();
-  try{ await cargarUltimoExcelGithub(); }catch(e){ setStatus(els.sapStatus,'❌ No se pudo leer la carpeta datos del repositorio','error'); }
+
+  try{
+    await cargarUltimoExcelGithub();
+  }catch(e){
+    console.error('Error cargando datos SAP:', e);
+    const usoCache=loadSapCache();
+    if(usoCache){
+      setStatus(els.sapStatus,`⚠️ ${e.message}. Usando último SAP guardado: ${sapFileName}`,'warn');
+    }else{
+      setStatus(els.sapStatus,`❌ ${e.message}`,'error');
+    }
+  }
+
   try{ await cargarUltimoExcelComprasGithub(); }catch(e){ console.warn('No se pudo cargar compras:',e); }
   await cargarGoogleSheets();
   render();

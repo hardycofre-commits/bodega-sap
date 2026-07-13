@@ -1,8 +1,15 @@
-Bodega SAP v5.7
+Bodega SAP v5.7 automática
 
-Reemplaza app.js y agrega:
+Sube respetando las carpetas:
+- app.js
 - datos/ultimo.json
 - compras/ultimo.json
+- .github/workflows/actualizar-ultimo.yml
 
-Google Sheets no cambia.
-Cada vez que subas un Excel nuevo, actualiza el nombre dentro del ultimo.json correspondiente.
+Después de esto, tu uso normal será:
+1. Subir un Excel nuevo a datos/ o compras/.
+2. GitHub Actions actualizará ultimo.json automáticamente.
+3. La aplicación cargará el archivo nuevo sin usar la API de GitHub.
+
+Google Sheets sigue sincronizando celular y computador exactamente igual.
+No reemplaces index.html ni styles.css.
