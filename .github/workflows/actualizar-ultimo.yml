@@ -1,1 +1,60 @@
+name: Actualizar último Excel
 
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'datos/*.xlsx'
+      - 'datos/*.xls'
+      - 'datos/*.csv'
+      - 'compras/*.xlsx'
+      - 'compras/*.xls'
+      - 'compras/*.csv'
+
+permissions:
+  contents: write
+
+jobs:
+  actualizar-ultimo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Detectar archivos más recientes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          for carpeta in ("datos", "compras"):
+              base = Path(carpeta)
+              archivos = sorted(
+                  [
+                      p.name for p in base.iterdir()
+                      if p.is_file() and p.suffix.lower() in {".xlsx", ".xls", ".csv"}
+                  ],
+                  reverse=True
+              )
+              if archivos:
+                  (base / "ultimo.json").write_text(
+                      json.dumps({"archivo": archivos[0]}, ensure_ascii=False, indent=2) + "\n",
+                      encoding="utf-8"
+                  )
+                  print(f"{carpeta}: {archivos[0]}")
+          PY
+
+      - name: Guardar cambios
+        run: |
+          if git diff --quiet -- datos/ultimo.json compras/ultimo.json; then
+            echo "No hay cambios."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add datos/ultimo.json compras/ultimo.json
+          git commit -m "Actualizar último Excel automáticamente"
+          git push
