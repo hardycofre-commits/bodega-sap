@@ -16,6 +16,8 @@ let comprasFileName = '';
 let comprasPorMaterial = {};
 let sincronizandoSheets = false;
 let pendientesSync = new Set();
+let fallosConsecutivosSheets = 0;
+let ultimaSyncSheets = 0;
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -140,11 +142,11 @@ function procesarWorkbook(wb){
 
 async function cargarGoogleSheets({silencioso=false}={}){
   if(sincronizandoSheets) return;
+  if(silencioso && Date.now()-ultimaSyncSheets<15000) return;
   sincronizandoSheets=true;
   if(!silencioso) setStatus(els.sheetStatus,'☁️ Conectando con Google Sheets...');
   try{
-    const r=await fetchConTimeout(CONFIG.SHEETS_WEBAPP_URL+'?t='+Date.now(),{cache:'no-store'});
-    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const r=await consultarSheetsConReintentos();
     const data=await r.json();
     if(!Array.isArray(data)) throw new Error(data?.error || 'Respuesta inválida');
     const map={};
@@ -164,17 +166,39 @@ async function cargarGoogleSheets({silencioso=false}={}){
       if(!pendientesSync.has(codigo)) avance[codigo]=registro;
     });
     saveCache();
+    fallosConsecutivosSheets=0;
+    ultimaSyncSheets=Date.now();
     setStatus(els.sheetStatus,'✅ Sincronizado con Google Sheets','ok');
     render();
 
     for(const codigo of [...pendientesSync]) await guardarSheets(codigo);
   }catch(e){
     console.error('Error conectando con Google Sheets:', e);
-    const detalle=e?.message ? ` (${e.message})` : '';
-    setStatus(els.sheetStatus,`⚠️ Google Sheets no disponible${detalle}. Usando respaldo local.`,'warn');
+    fallosConsecutivosSheets++;
+    // Un 404 aislado puede ocurrir en la redirección temporal de Apps Script.
+    // Conservamos el último estado bueno y alertamos sólo si persiste.
+    if(!silencioso || fallosConsecutivosSheets>=3){
+      const detalle=e?.message ? ` (${e.message})` : '';
+      setStatus(els.sheetStatus,`⚠️ Google Sheets no disponible${detalle}. Usando respaldo local.`,'warn');
+    }
   }finally{
     sincronizandoSheets=false;
   }
+}
+
+async function consultarSheetsConReintentos(intentos=3){
+  let ultimoError;
+  for(let intento=1; intento<=intentos; intento++){
+    try{
+      const r=await fetchConTimeout(CONFIG.SHEETS_WEBAPP_URL+'?t='+Date.now(),{cache:'no-store'});
+      if(r.ok) return r;
+      throw new Error(`HTTP ${r.status}`);
+    }catch(e){
+      ultimoError=e;
+      if(intento<intentos) await new Promise(resolve=>setTimeout(resolve,intento*1500));
+    }
+  }
+  throw ultimoError;
 }
 
 async function fetchConTimeout(url, options={}, timeoutMs=45000){
@@ -191,10 +215,8 @@ async function guardarSheets(codigo){
   const r=avance[codigo] || {};
   const body={ codigo_sap: codigo, oculto: r.oculto?'SI':'', stock_real: r.real ?? '', fecha_revision: r.fecha || '', fecha_oculto: r.fechaOculto || '' };
   try{
-    // Con no-cors el navegador no informa si el POST recibió un 404. Esta
-    // comprobación evita mostrar un falso "Sincronizado" si el despliegue murió.
-    const health=await fetchConTimeout(CONFIG.SHEETS_WEBAPP_URL+'?ping='+Date.now(),{cache:'no-store'});
-    if(!health.ok) throw new Error(`HTTP ${health.status}`);
+    // No hacemos un GET adicional antes del POST: duplicar llamadas aumentaba
+    // los fallos transitorios de las redirecciones de Apps Script.
     await fetchConTimeout(CONFIG.SHEETS_WEBAPP_URL,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(body) });
     pendientesSync.delete(codigo);
     saveCache();
@@ -284,7 +306,7 @@ async function init(){
   render();
 
   // Mantiene celular y computador actualizados sin tener que recargar la página.
-  setInterval(()=>cargarGoogleSheets({silencioso:true}),20000);
+  setInterval(()=>cargarGoogleSheets({silencioso:true}),60000);
 }
 
 document.addEventListener('click',e=>{ const f=e.target.closest('[data-filter]')?.dataset.filter; if(f){ filtro=f; render(); } });
