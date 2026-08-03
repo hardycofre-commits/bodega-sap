@@ -3,7 +3,7 @@ const CONFIG = {
   REPO: 'bodega-sap',
   DATOS_PATH: 'datos',
   COMPRAS_PATH: 'compras',
-  SHEETS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbxlntU4x4bOg4CQWIL80T0-gmrIKulE65hvqs9D0npSfGPmGCfVYcAMUyv8hKNsfOPMTg/exec',
+  SHEETS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbzJxl0F96S3HXTKnLYhv7l8-fFLFvuRUMEGK0kL1lDprLcFg0VYqHR8sIsqTv0-h5Y0SQ/exec',
   LOCAL_KEY: 'bodegaSap_v55_cache'
 };
 
@@ -139,11 +139,12 @@ function procesarWorkbook(wb){
 async function cargarGoogleSheets(){
   setStatus(els.sheetStatus,'☁️ Conectando con Google Sheets...');
   try{
-    const r=await fetch(CONFIG.SHEETS_WEBAPP_URL+'?t='+Date.now(),{cache:'no-store'});
-    if(!r.ok) throw new Error('GET Sheets falló');
+    const r=await fetchConTimeout(CONFIG.SHEETS_WEBAPP_URL+'?t='+Date.now(),{cache:'no-store'});
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
     const data=await r.json();
+    if(!Array.isArray(data)) throw new Error(data?.error || 'Respuesta inválida');
     const map={};
-    (Array.isArray(data)?data:[]).forEach(row=>{
+    data.forEach(row=>{
       const codigo=norm(row.codigo_sap || row.codigo || row.Codigo || row.Código || row[0]);
       if(!codigo) return;
       map[codigo]={
@@ -157,7 +158,19 @@ async function cargarGoogleSheets(){
     saveCache();
     setStatus(els.sheetStatus,'✅ Sincronizado con Google Sheets','ok');
   }catch(e){
-    setStatus(els.sheetStatus,'⚠️ Sin conexión a Google Sheets. Usando respaldo local.','warn');
+    console.error('Error conectando con Google Sheets:', e);
+    const detalle=e?.message ? ` (${e.message})` : '';
+    setStatus(els.sheetStatus,`⚠️ Google Sheets no disponible${detalle}. Usando respaldo local.`,'warn');
+  }
+}
+
+async function fetchConTimeout(url, options={}, timeoutMs=15000){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeoutMs);
+  try{
+    return await fetch(url,{...options,signal:controller.signal});
+  }finally{
+    clearTimeout(timer);
   }
 }
 
@@ -165,11 +178,17 @@ async function guardarSheets(codigo){
   const r=avance[codigo] || {};
   const body={ codigo_sap: codigo, oculto: r.oculto?'SI':'', stock_real: r.real ?? '', fecha_revision: r.fecha || '', fecha_oculto: r.fechaOculto || '' };
   try{
-    await fetch(CONFIG.SHEETS_WEBAPP_URL,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(body) });
+    // Con no-cors el navegador no informa si el POST recibió un 404. Esta
+    // comprobación evita mostrar un falso "Sincronizado" si el despliegue murió.
+    const health=await fetchConTimeout(CONFIG.SHEETS_WEBAPP_URL+'?ping='+Date.now(),{cache:'no-store'});
+    if(!health.ok) throw new Error(`HTTP ${health.status}`);
+    await fetchConTimeout(CONFIG.SHEETS_WEBAPP_URL,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(body) });
     setStatus(els.sheetStatus,'✅ Sincronizado con Google Sheets','ok');
     return true;
   }catch(e){
-    setStatus(els.sheetStatus,'⚠️ Sin conexión a Google Sheets. Guardado local.','warn');
+    console.error('Error guardando en Google Sheets:', e);
+    const detalle=e?.message ? ` (${e.message})` : '';
+    setStatus(els.sheetStatus,`⚠️ Google Sheets no disponible${detalle}. Guardado local.`,'warn');
     return false;
   }
 }
