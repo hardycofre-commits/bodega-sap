@@ -14,6 +14,8 @@ let current = null;
 let sapFileName = '';
 let comprasFileName = '';
 let comprasPorMaterial = {};
+let sincronizandoSheets = false;
+let pendientesSync = new Set();
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -28,8 +30,8 @@ function setStatus(el, text, type=''){ el.textContent = text; el.className = 'pi
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),2200); }
 function pick(row,names){ const keys=Object.keys(row); for(const n of names){ const k=keys.find(x=>x.toLowerCase().trim()===n.toLowerCase()); if(k) return row[k]; } for(const n of names){ const k=keys.find(x=>x.toLowerCase().includes(n.toLowerCase())); if(k) return row[k]; } return ''; }
 
-function loadCache(){ try{ const c=JSON.parse(localStorage.getItem(CONFIG.LOCAL_KEY)||'{}'); avance=c.avance||{}; }catch{} }
-function saveCache(){ localStorage.setItem(CONFIG.LOCAL_KEY, JSON.stringify({avance, sapFileName, savedAt:new Date().toISOString()})); }
+function loadCache(){ try{ const c=JSON.parse(localStorage.getItem(CONFIG.LOCAL_KEY)||'{}'); avance=c.avance||{}; pendientesSync=new Set(c.pendientesSync||[]); }catch{} }
+function saveCache(){ localStorage.setItem(CONFIG.LOCAL_KEY, JSON.stringify({avance, pendientesSync:[...pendientesSync], sapFileName, savedAt:new Date().toISOString()})); }
 
 function fileDate(name){
   const m=String(name).match(/(20\d{2})[-_]?([01]\d)[-_]?([0-3]\d)[T _-]?([0-2]\d)?([0-5]\d)?([0-5]\d)?/);
@@ -136,8 +138,10 @@ function procesarWorkbook(wb){
   }).filter(x=>x.codigo && x.desc && !/(^|\s|\()NULO(\)|\s|$)/i.test(x.desc));
 }
 
-async function cargarGoogleSheets(){
-  setStatus(els.sheetStatus,'☁️ Conectando con Google Sheets...');
+async function cargarGoogleSheets({silencioso=false}={}){
+  if(sincronizandoSheets) return;
+  sincronizandoSheets=true;
+  if(!silencioso) setStatus(els.sheetStatus,'☁️ Conectando con Google Sheets...');
   try{
     const r=await fetchConTimeout(CONFIG.SHEETS_WEBAPP_URL+'?t='+Date.now(),{cache:'no-store'});
     if(!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -154,17 +158,26 @@ async function cargarGoogleSheets(){
         fechaOculto: row.fecha_oculto || ''
       };
     });
-    avance={...avance,...map};
+    // Google Sheets manda entre equipos. Los cambios locales que aún no se
+    // pudieron subir se conservan y se reintentan al recuperar la conexión.
+    Object.entries(map).forEach(([codigo, registro])=>{
+      if(!pendientesSync.has(codigo)) avance[codigo]=registro;
+    });
     saveCache();
     setStatus(els.sheetStatus,'✅ Sincronizado con Google Sheets','ok');
+    render();
+
+    for(const codigo of [...pendientesSync]) await guardarSheets(codigo);
   }catch(e){
     console.error('Error conectando con Google Sheets:', e);
     const detalle=e?.message ? ` (${e.message})` : '';
     setStatus(els.sheetStatus,`⚠️ Google Sheets no disponible${detalle}. Usando respaldo local.`,'warn');
+  }finally{
+    sincronizandoSheets=false;
   }
 }
 
-async function fetchConTimeout(url, options={}, timeoutMs=15000){
+async function fetchConTimeout(url, options={}, timeoutMs=45000){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),timeoutMs);
   try{
@@ -183,6 +196,8 @@ async function guardarSheets(codigo){
     const health=await fetchConTimeout(CONFIG.SHEETS_WEBAPP_URL+'?ping='+Date.now(),{cache:'no-store'});
     if(!health.ok) throw new Error(`HTTP ${health.status}`);
     await fetchConTimeout(CONFIG.SHEETS_WEBAPP_URL,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(body) });
+    pendientesSync.delete(codigo);
+    saveCache();
     setStatus(els.sheetStatus,'✅ Sincronizado con Google Sheets','ok');
     return true;
   }catch(e){
@@ -191,6 +206,11 @@ async function guardarSheets(codigo){
     setStatus(els.sheetStatus,`⚠️ Google Sheets no disponible${detalle}. Guardado local.`,'warn');
     return false;
   }
+}
+
+function marcarPendienteSync(codigo){
+  pendientesSync.add(codigo);
+  saveCache();
 }
 
 function rec(codigo){ avance[codigo]=avance[codigo]||{}; return avance[codigo]; }
@@ -238,9 +258,9 @@ function abrir(codigo){ current=materiales.find(m=>m.codigo===codigo); if(!curre
   els.dMeta.textContent=`Última revisión: ${r.fecha||r.fechaOculto||'sin registro'} · Archivo: ${sapFileName||'sin archivo'}${compra ? ` · Última OC: ${compra.oc} · Fecha documento: ${compra.fecha||'sin fecha'}` : ' · Sin OC registrada'}`; els.unhideBtn.style.display=r.oculto?'block':'none'; updateDrawerState(); els.drawer.classList.remove('hidden'); setTimeout(()=>els.realInput.focus(),100); }
 function updateDrawerState(){ if(!current) return; let old=avance[current.codigo]; if(els.realInput.value!==''){ avance[current.codigo]={...old,real:Number(els.realInput.value)}; } const e=estado(current); avance[current.codigo]=old; els.dEstado.className='state-badge '+e; els.dEstado.textContent=estadoLabel(e); }
 function closeDrawer(){ els.drawer.classList.add('hidden'); current=null; }
-async function saveCurrent(){ if(!current) return; if(els.realInput.value===''){ toast('Ingresa stock real o usa Igual que SAP'); return; } avance[current.codigo]={...rec(current.codigo), real:Number(els.realInput.value), oculto:false, fecha:today()}; saveCache(); render(); await guardarSheets(current.codigo); toast('Guardado'); closeDrawer(); }
-async function hideCurrent(){ if(!current) return; avance[current.codigo]={...rec(current.codigo), oculto:true, fechaOculto:today()}; saveCache(); render(); await guardarSheets(current.codigo); toast('Material oculto'); closeDrawer(); }
-async function unhideCurrent(){ if(!current) return; avance[current.codigo]={...rec(current.codigo), oculto:false}; saveCache(); render(); await guardarSheets(current.codigo); toast('Material desocultado'); closeDrawer(); }
+async function saveCurrent(){ if(!current) return; if(els.realInput.value===''){ toast('Ingresa stock real o usa Igual que SAP'); return; } avance[current.codigo]={...rec(current.codigo), real:Number(els.realInput.value), oculto:false, fecha:today()}; marcarPendienteSync(current.codigo); render(); await guardarSheets(current.codigo); toast('Guardado'); closeDrawer(); }
+async function hideCurrent(){ if(!current) return; avance[current.codigo]={...rec(current.codigo), oculto:true, fechaOculto:today()}; marcarPendienteSync(current.codigo); render(); await guardarSheets(current.codigo); toast('Material oculto'); closeDrawer(); }
+async function unhideCurrent(){ if(!current) return; avance[current.codigo]={...rec(current.codigo), oculto:false}; marcarPendienteSync(current.codigo); render(); await guardarSheets(current.codigo); toast('Material desocultado'); closeDrawer(); }
 function sameSap(){ if(!current) return; els.realInput.value=current.sap; updateDrawerState(); }
 function continuar(){ const m=materiales.find(x=>estado(x)==='pendiente'); if(m) abrir(m.codigo); else toast('No hay pendientes'); }
 
@@ -262,6 +282,9 @@ async function init(){
 
   await cargarGoogleSheets();
   render();
+
+  // Mantiene celular y computador actualizados sin tener que recargar la página.
+  setInterval(()=>cargarGoogleSheets({silencioso:true}),20000);
 }
 
 document.addEventListener('click',e=>{ const f=e.target.closest('[data-filter]')?.dataset.filter; if(f){ filtro=f; render(); } });
@@ -273,4 +296,8 @@ $('sameSapBtn').addEventListener('click',sameSap);
 $('saveBtn').addEventListener('click',saveCurrent);
 $('hideBtn').addEventListener('click',hideCurrent);
 $('unhideBtn').addEventListener('click',unhideCurrent);
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible') cargarGoogleSheets({silencioso:true});
+});
+window.addEventListener('focus',()=>cargarGoogleSheets({silencioso:true}));
 init();
