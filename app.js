@@ -4,7 +4,11 @@ const CONFIG = {
   DATOS_PATH: 'datos',
   COMPRAS_PATH: 'compras',
   SHEETS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbzJxl0F96S3HXTKnLYhv7l8-fFLFvuRUMEGK0kL1lDprLcFg0VYqHR8sIsqTv0-h5Y0SQ/exec',
-  LOCAL_KEY: 'bodegaSap_v55_cache'
+  LOCAL_KEY: 'bodegaSap_v55_cache',
+  ADMIN_DEVICE_KEY: 'bodegaSap_admin_device_v1',
+  ADMIN_SESSION_KEY: 'bodegaSap_admin_session_v1',
+  ADMIN_PAUSED_KEY: 'bodegaSap_admin_paused_v1',
+  ADMIN_PASSWORD_HASH: '7e27cacb4ad28381fa0e00915ad3c63bad8913a7cce0ad2df8382320617e3dc2'
 };
 
 let materiales = [];
@@ -18,11 +22,14 @@ let sincronizandoSheets = false;
 let pendientesSync = new Set();
 let fallosConsecutivosSheets = 0;
 let ultimaSyncSheets = 0;
+let modoAdministrador = false;
 
 const $ = (id) => document.getElementById(id);
 const els = {
   sapStatus: $('sapStatus'), sheetStatus: $('sheetStatus'), searchInput: $('searchInput'), cards: $('cards'), listInfo: $('listInfo'),
-  drawer: $('drawer'), dCode: $('dCode'), dDesc: $('dDesc'), dSap: $('dSap'), realInput: $('realInput'), dEstado: $('dEstado'), dMeta: $('dMeta'), unhideBtn: $('unhideBtn')
+  drawer: $('drawer'), dCode: $('dCode'), dDesc: $('dDesc'), dSap: $('dSap'), realInput: $('realInput'), dEstado: $('dEstado'), dMeta: $('dMeta'), unhideBtn: $('unhideBtn'),
+  modeLabel: $('modeLabel'), adminAccessBtn: $('adminAccessBtn'), adminExitBtn: $('adminExitBtn'), forgetDeviceBtn: $('forgetDeviceBtn'),
+  authModal: $('authModal'), authForm: $('authForm'), adminPassword: $('adminPassword'), rememberAdmin: $('rememberAdmin'), authError: $('authError')
 };
 
 function norm(v){ return String(v ?? '').trim(); }
@@ -31,6 +38,76 @@ function today(){ return new Date().toLocaleDateString('es-CL'); }
 function setStatus(el, text, type=''){ el.textContent = text; el.className = 'pill ' + type; }
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),2200); }
 function pick(row,names){ const keys=Object.keys(row); for(const n of names){ const k=keys.find(x=>x.toLowerCase().trim()===n.toLowerCase()); if(k) return row[k]; } for(const n of names){ const k=keys.find(x=>x.toLowerCase().includes(n.toLowerCase())); if(k) return row[k]; } return ''; }
+
+function tieneAccesoRecordado(){ return localStorage.getItem(CONFIG.ADMIN_DEVICE_KEY)==='1'; }
+function tieneAccesoSesion(){ return sessionStorage.getItem(CONFIG.ADMIN_SESSION_KEY)==='1'; }
+function actualizarModo(admin){
+  modoAdministrador=Boolean(admin);
+  document.body.dataset.mode=modoAdministrador?'administrador':'consulta';
+  els.modeLabel.textContent=modoAdministrador?'Modo administrador':'Modo consulta';
+  els.adminAccessBtn.classList.toggle('hidden',modoAdministrador);
+  els.adminExitBtn.classList.toggle('hidden',!modoAdministrador);
+  els.forgetDeviceBtn.classList.toggle('hidden',!modoAdministrador || !tieneAccesoRecordado());
+  els.realInput.disabled=!modoAdministrador;
+  if(!els.drawer.classList.contains('hidden')) abrir(current?.codigo);
+}
+function iniciarModoAcceso(){
+  const pausado=sessionStorage.getItem(CONFIG.ADMIN_PAUSED_KEY)==='1';
+  actualizarModo(!pausado && (tieneAccesoSesion() || tieneAccesoRecordado()));
+}
+function abrirAccesoAdministrador(){
+  if(tieneAccesoRecordado()){
+    sessionStorage.removeItem(CONFIG.ADMIN_PAUSED_KEY);
+    actualizarModo(true);
+    toast('Modo administrador habilitado');
+    return;
+  }
+  els.authError.classList.add('hidden');
+  els.adminPassword.value='';
+  els.rememberAdmin.checked=false;
+  els.authModal.classList.remove('hidden');
+  setTimeout(()=>els.adminPassword.focus(),50);
+}
+function cerrarAcceso(){ els.authModal.classList.add('hidden'); els.authForm.reset(); els.authError.classList.add('hidden'); }
+async function sha256(texto){
+  const bytes=new TextEncoder().encode(texto);
+  const hash=await crypto.subtle.digest('SHA-256',bytes);
+  return [...new Uint8Array(hash)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function ingresarAdministrador(e){
+  e.preventDefault();
+  if(await sha256(els.adminPassword.value)!==CONFIG.ADMIN_PASSWORD_HASH){
+    els.authError.classList.remove('hidden');
+    els.adminPassword.select();
+    return;
+  }
+  sessionStorage.setItem(CONFIG.ADMIN_SESSION_KEY,'1');
+  sessionStorage.removeItem(CONFIG.ADMIN_PAUSED_KEY);
+  if(els.rememberAdmin.checked) localStorage.setItem(CONFIG.ADMIN_DEVICE_KEY,'1');
+  cerrarAcceso();
+  actualizarModo(true);
+  toast('Modo administrador habilitado');
+}
+function salirAdministrador(){
+  sessionStorage.removeItem(CONFIG.ADMIN_SESSION_KEY);
+  sessionStorage.setItem(CONFIG.ADMIN_PAUSED_KEY,'1');
+  actualizarModo(false);
+  closeDrawer();
+  toast('Modo consulta habilitado');
+}
+function olvidarDispositivo(){
+  localStorage.removeItem(CONFIG.ADMIN_DEVICE_KEY);
+  sessionStorage.removeItem(CONFIG.ADMIN_SESSION_KEY);
+  sessionStorage.setItem(CONFIG.ADMIN_PAUSED_KEY,'1');
+  actualizarModo(false);
+  closeDrawer();
+  toast('Este dispositivo fue olvidado');
+}
+function exigirAdministrador(){
+  if(modoAdministrador) return true;
+  toast('Esta función requiere acceso administrador');
+  return false;
+}
 
 function loadCache(){ try{ const c=JSON.parse(localStorage.getItem(CONFIG.LOCAL_KEY)||'{}'); avance=c.avance||{}; pendientesSync=new Set(c.pendientesSync||[]); }catch{} }
 function saveCache(){ localStorage.setItem(CONFIG.LOCAL_KEY, JSON.stringify({avance, pendientesSync:[...pendientesSync], sapFileName, savedAt:new Date().toISOString()})); }
@@ -165,13 +242,13 @@ async function cargarGoogleSheets({silencioso=false}={}){
     Object.entries(map).forEach(([codigo, registro])=>{
       if(!pendientesSync.has(codigo)) avance[codigo]=registro;
     });
-    saveCache();
+    if(modoAdministrador) saveCache();
     fallosConsecutivosSheets=0;
     ultimaSyncSheets=Date.now();
     setStatus(els.sheetStatus,'✅ Sincronizado con Google Sheets','ok');
     render();
 
-    for(const codigo of [...pendientesSync]) await guardarSheets(codigo);
+    if(modoAdministrador) for(const codigo of [...pendientesSync]) await guardarSheets(codigo);
   }catch(e){
     console.error('Error conectando con Google Sheets:', e);
     fallosConsecutivosSheets++;
@@ -212,6 +289,7 @@ async function fetchConTimeout(url, options={}, timeoutMs=45000){
 }
 
 async function guardarSheets(codigo){
+  if(!exigirAdministrador()) return false;
   const r=avance[codigo] || {};
   const body={ codigo_sap: codigo, oculto: r.oculto?'SI':'', stock_real: r.real ?? '', fecha_revision: r.fecha || '', fecha_oculto: r.fechaOculto || '' };
   try{
@@ -231,8 +309,10 @@ async function guardarSheets(codigo){
 }
 
 function marcarPendienteSync(codigo){
+  if(!exigirAdministrador()) return false;
   pendientesSync.add(codigo);
   saveCache();
+  return true;
 }
 
 function rec(codigo){ avance[codigo]=avance[codigo]||{}; return avance[codigo]; }
@@ -280,13 +360,14 @@ function abrir(codigo){ current=materiales.find(m=>m.codigo===codigo); if(!curre
   els.dMeta.textContent=`Última revisión: ${r.fecha||r.fechaOculto||'sin registro'} · Archivo: ${sapFileName||'sin archivo'}${compra ? ` · Última OC: ${compra.oc} · Fecha documento: ${compra.fecha||'sin fecha'}` : ' · Sin OC registrada'}`; els.unhideBtn.style.display=r.oculto?'block':'none'; updateDrawerState(); els.drawer.classList.remove('hidden'); setTimeout(()=>els.realInput.focus(),100); }
 function updateDrawerState(){ if(!current) return; let old=avance[current.codigo]; if(els.realInput.value!==''){ avance[current.codigo]={...old,real:Number(els.realInput.value)}; } const e=estado(current); avance[current.codigo]=old; els.dEstado.className='state-badge '+e; els.dEstado.textContent=estadoLabel(e); }
 function closeDrawer(){ els.drawer.classList.add('hidden'); current=null; }
-async function saveCurrent(){ if(!current) return; if(els.realInput.value===''){ toast('Ingresa stock real o usa Igual que SAP'); return; } avance[current.codigo]={...rec(current.codigo), real:Number(els.realInput.value), oculto:false, fecha:today()}; marcarPendienteSync(current.codigo); render(); await guardarSheets(current.codigo); toast('Guardado'); closeDrawer(); }
-async function hideCurrent(){ if(!current) return; avance[current.codigo]={...rec(current.codigo), oculto:true, fechaOculto:today()}; marcarPendienteSync(current.codigo); render(); await guardarSheets(current.codigo); toast('Material oculto'); closeDrawer(); }
-async function unhideCurrent(){ if(!current) return; avance[current.codigo]={...rec(current.codigo), oculto:false}; marcarPendienteSync(current.codigo); render(); await guardarSheets(current.codigo); toast('Material desocultado'); closeDrawer(); }
-function sameSap(){ if(!current) return; els.realInput.value=current.sap; updateDrawerState(); }
-function continuar(){ const m=materiales.find(x=>estado(x)==='pendiente'); if(m) abrir(m.codigo); else toast('No hay pendientes'); }
+async function saveCurrent(){ if(!exigirAdministrador() || !current) return; if(els.realInput.value===''){ toast('Ingresa stock real o usa Igual que SAP'); return; } avance[current.codigo]={...rec(current.codigo), real:Number(els.realInput.value), oculto:false, fecha:today()}; marcarPendienteSync(current.codigo); render(); await guardarSheets(current.codigo); toast('Guardado'); closeDrawer(); }
+async function hideCurrent(){ if(!exigirAdministrador() || !current) return; avance[current.codigo]={...rec(current.codigo), oculto:true, fechaOculto:today()}; marcarPendienteSync(current.codigo); render(); await guardarSheets(current.codigo); toast('Material oculto'); closeDrawer(); }
+async function unhideCurrent(){ if(!exigirAdministrador() || !current) return; avance[current.codigo]={...rec(current.codigo), oculto:false}; marcarPendienteSync(current.codigo); render(); await guardarSheets(current.codigo); toast('Material desocultado'); closeDrawer(); }
+function sameSap(){ if(!exigirAdministrador() || !current) return; els.realInput.value=current.sap; updateDrawerState(); }
+function continuar(){ if(!exigirAdministrador()) return; const m=materiales.find(x=>estado(x)==='pendiente'); if(m) abrir(m.codigo); else toast('No hay pendientes'); }
 
 async function init(){
+  iniciarModoAcceso();
   loadCache();
 
   try{
@@ -318,6 +399,12 @@ $('sameSapBtn').addEventListener('click',sameSap);
 $('saveBtn').addEventListener('click',saveCurrent);
 $('hideBtn').addEventListener('click',hideCurrent);
 $('unhideBtn').addEventListener('click',unhideCurrent);
+els.adminAccessBtn.addEventListener('click',abrirAccesoAdministrador);
+els.adminExitBtn.addEventListener('click',salirAdministrador);
+els.forgetDeviceBtn.addEventListener('click',olvidarDispositivo);
+els.authForm.addEventListener('submit',ingresarAdministrador);
+$('closeAuth').addEventListener('click',cerrarAcceso);
+els.authModal.addEventListener('click',e=>{ if(e.target===els.authModal) cerrarAcceso(); });
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible') cargarGoogleSheets({silencioso:true});
 });

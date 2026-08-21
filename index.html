@@ -15,6 +15,12 @@
         <h1>Bodega SAP</h1>
         <p>Inventario físico vs stock SAP · Piscicultura Lago Verde</p>
       </div>
+      <div class="access-area">
+        <span class="mode-label" id="modeLabel">Modo consulta</span>
+        <button class="access-link" id="adminAccessBtn" type="button">🔒 Acceso administrador</button>
+        <button class="access-link hidden" id="adminExitBtn" type="button">🔓 Salir del modo administrador</button>
+        <button class="access-link hidden" id="forgetDeviceBtn" type="button">Olvidar este dispositivo</button>
+      </div>
     </div>
   </header>
 
@@ -67,17 +73,35 @@
       </div>
       <div class="detail-grid">
         <div><small>Stock SAP</small><b id="dSap">0</b></div>
-        <div><small>Stock real</small><input id="realInput" type="number" step="0.01" inputmode="decimal" placeholder="0" /></div>
+        <div class="admin-only"><small>Stock real</small><input id="realInput" type="number" step="0.01" inputmode="decimal" placeholder="0" /></div>
       </div>
       <div class="state-badge" id="dEstado">⏳ Pendiente</div>
       <p class="small" id="dMeta">Última revisión: sin registro</p>
-      <div class="action-grid">
+      <div class="action-grid admin-only">
         <button class="secondary" id="sameSapBtn">☑ Igual que SAP</button>
         <button class="success" id="saveBtn">💾 Guardar</button>
         <button class="danger" id="hideBtn">🚫 Ocultar</button>
         <button class="secondary" id="unhideBtn">↩ Desocultar</button>
       </div>
     </div>
+  </div>
+
+  <div class="auth-modal hidden" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <form class="auth-card" id="authForm">
+      <button class="close" id="closeAuth" type="button" aria-label="Cerrar">×</button>
+      <h2 id="authTitle">🔒 Acceso administrador</h2>
+      <p>Ingresa la contraseña para habilitar las funciones de inventario.</p>
+      <label class="auth-field">
+        <span>Contraseña</span>
+        <input id="adminPassword" type="password" autocomplete="current-password" required />
+      </label>
+      <label class="remember-row">
+        <input id="rememberAdmin" type="checkbox" />
+        <span>Recordar acceso administrador en este dispositivo</span>
+      </label>
+      <p class="auth-error hidden" id="authError">Contraseña incorrecta.</p>
+      <button class="success" type="submit">Ingresar</button>
+    </form>
   </div>
 
   <div class="toast hidden" id="toast"></div>
