@@ -2,6 +2,6 @@
 .hidden{display:none!important}.access-area{margin-left:auto;display:flex;align-items:flex-end;gap:4px;flex-direction:column}.mode-label{font-size:.78rem;font-weight:700;opacity:.9}.access-link{border:0;background:transparent;color:inherit;padding:2px 0;font:inherit;font-size:.8rem;cursor:pointer;text-decoration:underline;text-underline-offset:2px}.access-link:hover{opacity:.8}
 .auth-modal{position:fixed;inset:0;z-index:50;background:rgba(16,24,40,.58);display:grid;place-items:center;padding:18px}.auth-card{position:relative;width:min(420px,100%);background:#fff;border-radius:18px;padding:26px;box-shadow:0 24px 70px rgba(16,24,40,.28);display:grid;gap:16px}.auth-card h2,.auth-card p{margin:0}.auth-field{display:grid;gap:6px;font-weight:700}.auth-field input{width:100%;box-sizing:border-box;border:1px solid #d0d5dd;border-radius:10px;padding:12px;font:inherit}.remember-row{display:flex;align-items:flex-start;gap:9px;font-size:.9rem}.remember-row input{margin-top:3px}.auth-error{color:#b42318;font-weight:700;font-size:.88rem}.auth-card>.success{width:100%}
 body[data-mode="consulta"] .admin-only{display:none!important}
-body[data-mode="consulta"] .detail-grid{grid-template-columns:1fr}
+body[data-mode="administrador"] .consultation-only{display:none!important}
 
 @media(max-width:700px){.hero-inner{flex-wrap:wrap}.access-area{width:100%;margin-left:0;align-items:flex-start;margin-top:8px}}

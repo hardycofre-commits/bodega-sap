@@ -27,7 +27,7 @@ let modoAdministrador = false;
 const $ = (id) => document.getElementById(id);
 const els = {
   sapStatus: $('sapStatus'), sheetStatus: $('sheetStatus'), searchInput: $('searchInput'), cards: $('cards'), listInfo: $('listInfo'),
-  drawer: $('drawer'), dCode: $('dCode'), dDesc: $('dDesc'), dSap: $('dSap'), realInput: $('realInput'), dEstado: $('dEstado'), dMeta: $('dMeta'), unhideBtn: $('unhideBtn'),
+  drawer: $('drawer'), dCode: $('dCode'), dDesc: $('dDesc'), dSap: $('dSap'), dRealRead: $('dRealRead'), realInput: $('realInput'), dEstado: $('dEstado'), dMeta: $('dMeta'), unhideBtn: $('unhideBtn'),
   modeLabel: $('modeLabel'), adminAccessBtn: $('adminAccessBtn'), adminExitBtn: $('adminExitBtn'), forgetDeviceBtn: $('forgetDeviceBtn'),
   authModal: $('authModal'), authForm: $('authForm'), adminPassword: $('adminPassword'), rememberAdmin: $('rememberAdmin'), authError: $('authError')
 };
@@ -356,7 +356,7 @@ function cardHtml(m){
     <span class="badge ${e}">${estadoLabel(e)}</span>
   </article>`;
 }
-function abrir(codigo){ current=materiales.find(m=>m.codigo===codigo); if(!current) return; const r=rec(codigo); els.dCode.textContent=current.codigo; els.dDesc.textContent=current.desc; els.dSap.textContent=`${current.sap} ${current.um||''}`; els.realInput.value=r.real ?? ''; const compra=compraDe(current.codigo);
+function abrir(codigo){ current=materiales.find(m=>m.codigo===codigo); if(!current) return; const r=rec(codigo); els.dCode.textContent=current.codigo; els.dDesc.textContent=current.desc; els.dSap.textContent=`${current.sap} ${current.um||''}`; els.dRealRead.textContent=r.real===undefined || r.real==='' ? 'Sin registro' : `${Number(r.real)} ${current.um||''}`; els.realInput.value=r.real ?? ''; const compra=compraDe(current.codigo);
   els.dMeta.textContent=`Última revisión: ${r.fecha||r.fechaOculto||'sin registro'} · Archivo: ${sapFileName||'sin archivo'}${compra ? ` · Última OC: ${compra.oc} · Fecha documento: ${compra.fecha||'sin fecha'}` : ' · Sin OC registrada'}`; els.unhideBtn.style.display=r.oculto?'block':'none'; updateDrawerState(); els.drawer.classList.remove('hidden'); setTimeout(()=>els.realInput.focus(),100); }
 function updateDrawerState(){ if(!current) return; let old=avance[current.codigo]; if(els.realInput.value!==''){ avance[current.codigo]={...old,real:Number(els.realInput.value)}; } const e=estado(current); avance[current.codigo]=old; els.dEstado.className='state-badge '+e; els.dEstado.textContent=estadoLabel(e); }
 function closeDrawer(){ els.drawer.classList.add('hidden'); current=null; }
